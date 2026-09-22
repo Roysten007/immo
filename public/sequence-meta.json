@@ -1,0 +1,18 @@
+{
+  "desktop": {
+    "count": 1351,
+    "totalBytes": 65486974,
+    "totalSizeMB": "62.45",
+    "avgKB": "47.3",
+    "maxKB": "60.0",
+    "fps": 15
+  },
+  "mobile": {
+    "count": 720,
+    "totalBytes": 14511164,
+    "totalSizeMB": "13.84",
+    "avgKB": "19.7",
+    "maxKB": "30.0",
+    "fps": 8
+  }
+}
