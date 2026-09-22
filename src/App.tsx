@@ -20,7 +20,7 @@ export function App() {
   useLenis();
 
   return (
-    <div className="min-h-screen bg-[#0F0E0C] text-[#F4EFE6] relative selection:bg-[#C9A15B]/30 selection:text-[#F4EFE6]">
+    <div className="min-h-screen bg-[#0F0E0C] text-[#F4EFE6] relative selection:bg-[#C9A15B]/30 selection:text-[#F4EFE6] overflow-x-clip w-full">
       {/* Curseur personnalisé desktop */}
       <CustomCursor />
 
