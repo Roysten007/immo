@@ -14,13 +14,15 @@ export function useLenis() {
       return;
     }
 
+    const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: isTouch ? 0.8 : 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
-      touchMultiplier: 1.5,
+      syncTouch: false, // Ne pas forcer l'interception sur mobile pour fluidité native 120Hz
     });
 
     lenisRef.current = lenis;
@@ -33,7 +35,8 @@ export function useLenis() {
     };
 
     gsap.ticker.add(updateTicker);
-    gsap.ticker.lagSmoothing(0);
+    // lagSmoothing(500, 33) évite les saccades et sauts brutaux lors du chargement des frames
+    gsap.ticker.lagSmoothing(500, 33);
 
     return () => {
       gsap.ticker.remove(updateTicker);
