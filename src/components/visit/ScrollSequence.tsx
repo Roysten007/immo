@@ -7,13 +7,10 @@ import { WhatsAppIcon } from '../common/WhatsAppIcon';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Définition des paliers de performance ultra-rapides
-// Desktop : 271 frames sélectionnées (step de 5 parmi les 1351) -> ~12 Mo au total
-// Mobile : 180 frames sélectionnées (step de 4 parmi les 720) -> ~3.6 Mo au total
-const DESKTOP_FRAMES = 271;
-const DESKTOP_STEP = 5;
-const MOBILE_FRAMES = 180;
-const MOBILE_STEP = 4;
+interface SequenceMeta {
+  desktop: { count: number; fps: number };
+  mobile: { count: number; fps: number };
+}
 
 export function ScrollSequence() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,12 +20,13 @@ export function ScrollSequence() {
   const progressLineRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
   const currentChapterRef = useRef(0);
-  const rafDrawId = useRef<number | null>(null);
+  const activeFrameTargetRef = useRef(0);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [totalFrames, setTotalFrames] = useState<number>(0);
   const [isFirstStageReady, setIsFirstStageReady] = useState(false);
-  const [loadPercent, setLoadPercent] = useState(10);
+  const [loadPercent, setLoadPercent] = useState(15);
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
 
   // Détecter mobile/desktop
@@ -41,22 +39,21 @@ export function ScrollSequence() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const totalFrames = isMobile ? MOBILE_FRAMES : DESKTOP_FRAMES;
-  const frameStep = isMobile ? MOBILE_STEP : DESKTOP_STEP;
-  const folder = isMobile ? '/frames-mobile' : '/frames';
+  // Charger les métadonnées complètes de la séquence (1351 frames desktop, 720 mobile)
+  useEffect(() => {
+    fetch('/sequence-meta.json')
+      .then((res) => res.json())
+      .then((data: SequenceMeta) => {
+        const count = isMobile ? data.mobile.count : data.desktop.count;
+        setTotalFrames(count);
+      })
+      .catch((err) => {
+        console.warn('Erreur chargement sequence-meta.json, utilisation des valeurs par défaut', err);
+        setTotalFrames(isMobile ? 720 : 1351);
+      });
+  }, [isMobile]);
 
-  // Obtenir l'URL de la frame correspondant à l'index virtuel
-  const getFrameUrl = useCallback(
-    (index: number) => {
-      const maxReal = isMobile ? 720 : 1351;
-      const realNum = Math.min(1 + index * frameStep, maxReal);
-      const padded = String(realNum).padStart(4, '0');
-      return `${folder}/frame_${padded}.webp`;
-    },
-    [isMobile, frameStep, folder]
-  );
-
-  // Fonction de dessin optimisée sur le Canvas (mode cover avec alpha: false)
+  // Fonction de dessin de frame sur le canvas avec qualité maximale et cover parfait
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -70,15 +67,17 @@ export function ScrollSequence() {
     const ctx = ctxRef.current;
     if (!ctx) return;
 
-    // Trouver la frame la plus proche déjà prête
+    // Trouver la frame exacte ou la frame chargée la plus proche
     let img = imagesRef.current[frameIndex];
     if (!img || !img.complete || img.naturalWidth === 0) {
+      // Recherche arrière prioritaire
       for (let i = frameIndex - 1; i >= 0; i--) {
         if (imagesRef.current[i]?.complete && imagesRef.current[i]?.naturalWidth !== 0) {
           img = imagesRef.current[i];
           break;
         }
       }
+      // Recherche avant de secours
       if (!img || !img.complete || img.naturalWidth === 0) {
         for (let i = frameIndex + 1; i < imagesRef.current.length; i++) {
           if (imagesRef.current[i]?.complete && imagesRef.current[i]?.naturalWidth !== 0) {
@@ -91,26 +90,35 @@ export function ScrollSequence() {
 
     if (!img || !img.complete || img.naturalWidth === 0) return;
 
-    // Calcul mathématique exact cover
-    const cw = canvas.width;
-    const ch = canvas.height;
-    const nw = img.naturalWidth;
-    const nh = img.naturalHeight;
+    // Rendu "cover" parfait sans déformation
+    const hRatio = canvas.width / img.naturalWidth;
+    const vRatio = canvas.height / img.naturalHeight;
+    const ratio = Math.max(hRatio, vRatio);
+    const centerShiftX = (canvas.width - img.naturalWidth * ratio) / 2;
+    const centerShiftY = (canvas.height - img.naturalHeight * ratio) / 2;
 
-    const ratio = Math.max(cw / nw, ch / nh);
-    const rw = nw * ratio;
-    const rh = nh * ratio;
-    const cx = (cw - rw) * 0.5;
-    const cy = (ch - rh) * 0.5;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
-    ctx.drawImage(img, 0, 0, nw, nh, cx, cy, rw, rh);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      img,
+      0,
+      0,
+      img.naturalWidth,
+      img.naturalHeight,
+      centerShiftX,
+      centerShiftY,
+      img.naturalWidth * ratio,
+      img.naturalHeight * ratio
+    );
   }, []);
 
-  // Redimensionnement du canvas (DPR plafonné à 1.5 pour soulager le GPU et booster le 60fps)
+  // Redimensionnement du canvas (Pleine netteté Retina / 1080p avec dpr = 2)
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.floor(window.innerWidth * dpr);
     canvas.height = Math.floor(window.innerHeight * dpr);
     drawFrame(Math.round(frameObjRef.current.frame));
@@ -121,61 +129,66 @@ export function ScrollSequence() {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
-  // Chargement ultra-performant en 2 temps :
-  // Tier 1 (Immédiat) : 12 premières frames + 1 keyframe par chapitre (~20 images = ~800 Ko)
-  // Prêt en moins de 500ms !
-  // Tier 2 (Arrière-plan doux) : Reste des frames par micro-lots non bloquants
+  // Chargement intelligent et continu de l'intégralité des frames :
+  // 1. Amorce ultra-rapide (25 premières frames + repères des 9 chapitres) -> Prêt immédiatement en haute qualité
+  // 2. Préchargement continu en tâche de fond de TOUTES les 1351 frames sans bloquer le navigateur (zéro re-render React)
   useEffect(() => {
-    let isCancelled = false;
-    imagesRef.current = new Array(totalFrames).fill(null);
+    if (totalFrames <= 0) return;
 
-    const loadImagePromise = (index: number): Promise<void> => {
+    let isCancelled = false;
+    const folder = isMobile ? '/frames-mobile' : '/frames';
+    imagesRef.current = new Array(totalFrames).fill(null);
+    const requested = new Set<number>();
+
+    const loadSingleImage = (index: number): Promise<void> => {
+      if (index < 0 || index >= totalFrames) return Promise.resolve();
+      if (requested.has(index)) return Promise.resolve();
+      requested.add(index);
+
       return new Promise((resolve) => {
-        if (imagesRef.current[index]?.complete) {
-          resolve();
-          return;
-        }
         const img = new Image();
-        img.src = getFrameUrl(index);
+        const frameNum = String(index + 1).padStart(4, '0');
+        img.src = `${folder}/frame_${frameNum}.webp`;
+
         img.onload = () => {
           if (!isCancelled) {
             imagesRef.current[index] = img;
+            // Si c'est la première frame, initialiser le canvas
             if (index === 0) {
               handleResize();
             }
           }
           resolve();
         };
+
         img.onerror = () => {
           resolve();
         };
       });
     };
 
-    // Phase 1 : Charger l'amorce immédiate
+    // Phase 1 : Amorce prioritaire (25 premières frames + repères de chapitres)
     const priorityIndices = new Set<number>();
-    // Premières frames
-    for (let i = 0; i < Math.min(12, totalFrames); i++) {
+    for (let i = 0; i < Math.min(25, totalFrames); i++) {
       priorityIndices.add(i);
     }
-    // 1 frame clé par chapitre
-    CHAPTERS.forEach((_, chIdx) => {
-      const targetIndex = Math.min(
-        Math.floor((chIdx / CHAPTERS.length) * totalFrames),
-        totalFrames - 1
-      );
-      priorityIndices.add(targetIndex);
-    });
+    // Repères des 9 chapitres
+    for (let c = 0; c < CHAPTERS.length; c++) {
+      const idx = Math.min(Math.floor((c / CHAPTERS.length) * totalFrames), totalFrames - 1);
+      priorityIndices.add(idx);
+      if (idx > 0) priorityIndices.add(idx - 1);
+      if (idx < totalFrames - 1) priorityIndices.add(idx + 1);
+    }
 
-    const priorityArray = Array.from(priorityIndices);
-    let loadedPriority = 0;
+    const priorityList = Array.from(priorityIndices);
+    let loadedCount = 0;
 
-    const priorityPromises = priorityArray.map((idx) =>
-      loadImagePromise(idx).then(() => {
+    const priorityPromises = priorityList.map((idx) =>
+      loadSingleImage(idx).then(() => {
         if (!isCancelled) {
-          loadedPriority++;
-          const percent = Math.min(95, Math.round((loadedPriority / priorityArray.length) * 100));
-          setLoadPercent(percent);
+          loadedCount++;
+          const pct = Math.min(98, Math.round((loadedCount / priorityList.length) * 100));
+          setLoadPercent(pct);
         }
       })
     );
@@ -187,60 +200,81 @@ export function ScrollSequence() {
       handleResize();
       drawFrame(0);
 
-      // Phase 2 : Reste des frames en arrière-plan par micro-lots avec délai
-      const loadBackground = async () => {
-        const batchSize = 8;
-        for (let i = 0; i < totalFrames; i += batchSize) {
-          if (isCancelled) break;
-          const batch = [];
-          for (let j = i; j < Math.min(i + batchSize, totalFrames); j++) {
-            if (!priorityIndices.has(j)) {
-              batch.push(loadImagePromise(j));
+      // Phase 2 : Chargement en arrière-plan continu et intelligent de TOUTES les frames
+      // Priorise les frames autour du scroll actuel du visiteur pour une fluidité absolue
+      const loadAllFramesQueue = async () => {
+        const batchSize = 12;
+        let nextIndex = 0;
+
+        while (nextIndex < totalFrames && !isCancelled) {
+          // Déterminer la zone de priorité autour de la frame observée
+          const currentTarget = activeFrameTargetRef.current;
+          const lookaheadStart = Math.max(0, currentTarget - 15);
+          const lookaheadEnd = Math.min(totalFrames, currentTarget + 30);
+
+          const batchPromises: Promise<void>[] = [];
+
+          // Charger d'abord les frames proches du visiteur
+          for (let p = lookaheadStart; p < lookaheadEnd; p++) {
+            if (!requested.has(p)) {
+              batchPromises.push(loadSingleImage(p));
+              if (batchPromises.length >= batchSize) break;
             }
           }
-          if (batch.length > 0) {
-            await Promise.all(batch);
-            // Petite pause pour laisser respirer le thread principal et le réseau
-            await new Promise((r) => setTimeout(r, 60));
+
+          // Compléter par les frames séquentielles restantes
+          if (batchPromises.length < batchSize) {
+            for (let i = nextIndex; i < totalFrames && batchPromises.length < batchSize; i++) {
+              if (!requested.has(i)) {
+                batchPromises.push(loadSingleImage(i));
+              }
+              nextIndex = i + 1;
+            }
+          }
+
+          if (batchPromises.length > 0) {
+            await Promise.all(batchPromises);
+            // Micro-pause pour laisser la boucle d'événements du navigateur libre
+            await new Promise((r) => setTimeout(r, 16));
+          } else {
+            nextIndex += batchSize;
           }
         }
       };
 
-      // Démarrer après que le premier rendu soit stabilisé
       const timer = setTimeout(() => {
-        loadBackground();
-      }, 200);
+        loadAllFramesQueue();
+      }, 100);
 
       return () => clearTimeout(timer);
     });
 
     return () => {
       isCancelled = true;
-      if (rafDrawId.current) cancelAnimationFrame(rafDrawId.current);
     };
-  }, [totalFrames, getFrameUrl, handleResize, drawFrame]);
+  }, [totalFrames, isMobile, handleResize, drawFrame]);
 
-  // ScrollTrigger scrub de la séquence avec GSAP ScrollTrigger (optimisé zéro re-render)
+  // Scrub ScrollTrigger de la vidéo intégrale (1351 frames desktop, 720 frames mobile)
   useEffect(() => {
-    if (!isFirstStageReady || !containerRef.current) return;
+    if (!isFirstStageReady || totalFrames <= 0 || !containerRef.current) return;
 
     const ctx = gsap.context(() => {
       ScrollTrigger.create({
         trigger: containerRef.current,
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 0.5,
+        scrub: 0.6,
         onUpdate: (self) => {
           const progress = self.progress;
 
-          // 1. Mise à jour de la barre de progression en GPU (transform au lieu de width React)
+          // 1. Barre de progression en accélération matérielle GPU (zéro reflow)
           if (progressLineRef.current) {
             progressLineRef.current.style.transform = `scaleX(${progress})`;
           }
 
-          // 2. Masquage du hint de scroll après 4% de défilement
+          // 2. Masquage du hint de scroll après 3%
           if (scrollHintRef.current) {
-            if (progress > 0.04) {
+            if (progress > 0.03) {
               scrollHintRef.current.style.opacity = '0';
               scrollHintRef.current.style.pointerEvents = 'none';
             } else {
@@ -248,22 +282,17 @@ export function ScrollSequence() {
             }
           }
 
-          // 3. Calcul de la frame cible
+          // 3. Calcul précis de la frame cible parmi l'INTÉGRALITÉ des frames
           const targetFrame = Math.min(
             Math.floor(progress * (totalFrames - 1)),
             totalFrames - 1
           );
+
+          activeFrameTargetRef.current = targetFrame;
           frameObjRef.current.frame = targetFrame;
+          drawFrame(targetFrame);
 
-          // Debounce RAF pour éviter les drawFrame redondants
-          if (!rafDrawId.current) {
-            rafDrawId.current = requestAnimationFrame(() => {
-              drawFrame(Math.round(frameObjRef.current.frame));
-              rafDrawId.current = null;
-            });
-          }
-
-          // 4. Changement de chapitre uniquement quand l'index change (zéro re-render inutile)
+          // 4. Chapitre actif (mis à jour uniquement lors du changement de chapitre)
           const chapterIndex = Math.min(
             Math.floor(progress * CHAPTERS.length),
             CHAPTERS.length - 1
@@ -276,10 +305,7 @@ export function ScrollSequence() {
       });
     }, containerRef);
 
-    return () => {
-      ctx.revert();
-      if (rafDrawId.current) cancelAnimationFrame(rafDrawId.current);
-    };
+    return () => ctx.revert();
   }, [isFirstStageReady, totalFrames, drawFrame]);
 
   return (
@@ -291,7 +317,7 @@ export function ScrollSequence() {
     >
       {/* Conteneur Sticky 100vh */}
       <div className="sticky top-0 left-0 w-full h-screen overflow-hidden flex items-center justify-center">
-        {/* Canvas plein écran avec accélération matérielle */}
+        {/* Canvas plein écran en pleine résolution native */}
         <canvas
           ref={canvasRef}
           className="w-full h-full object-cover block will-change-transform"
@@ -301,9 +327,9 @@ export function ScrollSequence() {
         <div className="absolute inset-0 canvas-vignette pointer-events-none" />
         <div className="absolute inset-0 grain-overlay pointer-events-none" />
 
-        {/* Écran de chargement ultra-rapide (Prêt en <500ms) */}
+        {/* Écran de chargement initial raffiné */}
         {!isFirstStageReady && (
-          <div className="absolute inset-0 z-50 bg-[#0F0E0C] flex flex-col items-center justify-center px-6 transition-opacity duration-500">
+          <div className="absolute inset-0 z-50 bg-[#0F0E0C] flex flex-col items-center justify-center px-6 transition-opacity duration-700">
             <div className="w-14 h-14 rounded-full border border-[#C9A15B]/40 flex items-center justify-center mb-6 animate-pulse">
               <span className="font-display font-semibold text-2xl text-[#C9A15B]">K</span>
             </div>
@@ -331,7 +357,7 @@ export function ScrollSequence() {
         <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-gradient-to-t from-[#0F0E0C]/85 via-[#0F0E0C]/25 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-[20vh] bg-gradient-to-b from-[#0F0E0C]/60 to-transparent pointer-events-none" />
 
-        {/* Chapitres de texte (transition GPU fluide) */}
+        {/* Chapitres de texte (apparition / disparition progressive parfaitement fluide) */}
         <div className="absolute inset-0 pointer-events-none flex flex-col justify-end pb-12 md:pb-16 px-6 md:px-12 lg:px-16">
           <div className="max-w-2xl mx-auto w-full grid grid-cols-1 grid-rows-1">
             {CHAPTERS.map((ch, idx) => {
@@ -412,7 +438,7 @@ export function ScrollSequence() {
           <ChevronDown className="w-3.5 h-3.5 text-[#C9A15B]" />
         </div>
 
-        {/* Barre fine de progression de la visite en bas (GPU scaleX transform pour 60fps sans reflow) */}
+        {/* Barre fine de progression de la visite en bas */}
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#F4EFE6]/08 overflow-hidden">
           <div
             ref={progressLineRef}

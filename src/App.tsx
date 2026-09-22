@@ -20,7 +20,7 @@ export function App() {
   useLenis();
 
   return (
-    <div className="min-h-screen bg-[#0F0E0C] text-[#F4EFE6] relative selection:bg-[#C9A15B]/30 selection:text-[#F4EFE6] overflow-x-clip w-full">
+    <div className="min-h-screen bg-[#0F0E0C] text-[#F4EFE6] relative selection:bg-[#C9A15B]/30 selection:text-[#F4EFE6]">
       {/* Curseur personnalisé desktop */}
       <CustomCursor />
 
@@ -31,38 +31,40 @@ export function App() {
       <main>
         <ScrollSequence />
 
-        {/* Barre de recherche rapide flottante */}
-        <QuickSearch />
+        <div className="overflow-x-clip w-full relative">
+          {/* Barre de recherche rapide flottante */}
+          <QuickSearch />
 
-        {/* Biens d'exception à la une */}
-        <FeaturedProperties />
+          {/* Biens d'exception à la une */}
+          <FeaturedProperties />
 
-        {/* Manifeste mot par mot */}
-        <Manifesto />
+          {/* Manifeste mot par mot */}
+          <Manifesto />
 
-        {/* Comment acheter avec nous (Scroll horizontal en 4 étapes) */}
-        <HowToBuy />
+          {/* Comment acheter avec nous (Scroll horizontal en 4 étapes) */}
+          <HowToBuy />
 
-        {/* Pourquoi nous : Les 3 garanties */}
-        <WhyUs />
+          {/* Pourquoi nous : Les 3 garanties */}
+          <WhyUs />
 
-        {/* Chiffres clés animés */}
-        <KeyMetrics />
+          {/* Chiffres clés animés */}
+          <KeyMetrics />
 
-        {/* Guide immersif des quartiers */}
-        <Neighborhoods />
+          {/* Guide immersif des quartiers */}
+          <Neighborhoods />
 
-        {/* Témoignages d'acquéreurs */}
-        <Testimonials />
+          {/* Témoignages d'acquéreurs */}
+          <Testimonials />
 
-        {/* Estimation gratuite pour propriétaires vendeurs */}
-        <FreeValuation />
+          {/* Estimation gratuite pour propriétaires vendeurs */}
+          <FreeValuation />
 
-        {/* Foire aux questions */}
-        <FAQ />
+          {/* Foire aux questions */}
+          <FAQ />
 
-        {/* Section de clôture et CTA final */}
-        <FinalCTA />
+          {/* Section de clôture et CTA final */}
+          <FinalCTA />
+        </div>
       </main>
 
       {/* Footer complet */}
