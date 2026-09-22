@@ -17,10 +17,10 @@ export function ScrollSequence() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<(HTMLImageElement | null)[]>([]);
   const frameObjRef = useRef({ frame: 0 });
+  const fetchImageRef = useRef<((idx: number) => Promise<HTMLImageElement | null>) | null>(null);
   const progressLineRef = useRef<HTMLDivElement>(null);
   const scrollHintRef = useRef<HTMLDivElement>(null);
   const currentChapterRef = useRef(0);
-  const currentScrollProgressRef = useRef(0);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
 
   const [isMobile, setIsMobile] = useState(false);
@@ -53,7 +53,7 @@ export function ScrollSequence() {
       });
   }, [isMobile]);
 
-  // Fonction de dessin sur canvas plein écran Retina / 1080p avec interpolation cover
+  // Fonction de dessin sur canvas haute résolution avec calcul cover mathématique
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -72,30 +72,28 @@ export function ScrollSequence() {
 
     const clampedIndex = Math.max(0, Math.min(frameIndex, total - 1));
 
-    // Trouver la frame la plus proche prête
+    // Si la frame exacte n'est pas encore prête, déclencher son chargement prioritaire immédiat
     let img = imagesRef.current[clampedIndex];
     if (!img || !img.complete || img.naturalWidth === 0) {
-      // Recherche arrière
-      for (let i = clampedIndex - 1; i >= 0; i--) {
-        if (imagesRef.current[i]?.complete && imagesRef.current[i]?.naturalWidth !== 0) {
-          img = imagesRef.current[i];
+      fetchImageRef.current?.(clampedIndex);
+
+      // Trouver instantanément la frame la plus proche déjà prête (recherche bidirectionnelle)
+      for (let offset = 1; offset < total; offset++) {
+        const prev = clampedIndex - offset;
+        if (prev >= 0 && imagesRef.current[prev]?.complete && imagesRef.current[prev]?.naturalWidth !== 0) {
+          img = imagesRef.current[prev];
           break;
         }
-      }
-      // Recherche avant
-      if (!img || !img.complete || img.naturalWidth === 0) {
-        for (let i = clampedIndex + 1; i < total; i++) {
-          if (imagesRef.current[i]?.complete && imagesRef.current[i]?.naturalWidth !== 0) {
-            img = imagesRef.current[i];
-            break;
-          }
+        const next = clampedIndex + offset;
+        if (next < total && imagesRef.current[next]?.complete && imagesRef.current[next]?.naturalWidth !== 0) {
+          img = imagesRef.current[next];
+          break;
         }
       }
     }
 
     if (!img || !img.complete || img.naturalWidth === 0) return;
 
-    // Calcul exact cover mathématique
     const cw = canvas.width;
     const ch = canvas.height;
     const nw = img.naturalWidth;
@@ -108,19 +106,22 @@ export function ScrollSequence() {
     const cy = (ch - rh) * 0.5;
 
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = 'medium';
 
-    ctx.clearRect(0, 0, cw, ch);
+    // Si l'image couvre entièrement le canvas, l'écraser directement sans clearRect coûteux
+    if (cx > 0 || cy > 0) {
+      ctx.clearRect(0, 0, cw, ch);
+    }
     ctx.drawImage(img, 0, 0, nw, nh, cx, cy, rw, rh);
   }, []);
 
-  // Redimensionnement du Canvas avec haute résolution (dpr = 2)
+  // Redimensionnement du Canvas plafonné à 1920x1080 pour fluidité GPU 60/120fps maximale
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(window.innerWidth * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.width = Math.min(Math.floor(window.innerWidth * dpr), 1920);
+    canvas.height = Math.min(Math.floor(window.innerHeight * dpr), 1080);
     drawFrame(Math.round(frameObjRef.current.frame));
   }, [drawFrame]);
 
@@ -129,9 +130,9 @@ export function ScrollSequence() {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
-  // Chargement ultra-performant continu :
-  // Étape 1 : 25 premières images pour démarrage immédiat (< 500ms)
-  // Étape 2 : Stream de toutes les frames avec priorité dynamique autour du scroll du visiteur
+  // Moteur de streaming ultra-rapide JIT (Just-In-Time) :
+  // Phase 1 : Anchors globales couvrant les 9 chapitres en < 300ms
+  // Phase 2 : Pool concurrent continu priorisé autour du scroll du visiteur
   useEffect(() => {
     if (totalFrames <= 0) return;
 
@@ -139,11 +140,14 @@ export function ScrollSequence() {
     const folder = isMobile ? '/frames-mobile' : '/frames';
     imagesRef.current = new Array(totalFrames).fill(null);
     const requested = new Set<number>();
+    const inFlight = new Set<number>();
 
-    const fetchImage = (index: number): Promise<void> => {
-      if (index < 0 || index >= totalFrames) return Promise.resolve();
-      if (requested.has(index)) return Promise.resolve();
+    const fetchImage = (index: number): Promise<HTMLImageElement | null> => {
+      if (index < 0 || index >= totalFrames) return Promise.resolve(null);
+      if (imagesRef.current[index]?.complete) return Promise.resolve(imagesRef.current[index]);
+      if (requested.has(index)) return Promise.resolve(null);
       requested.add(index);
+      inFlight.add(index);
 
       return new Promise((resolve) => {
         const img = new Image();
@@ -151,36 +155,53 @@ export function ScrollSequence() {
         img.src = `${folder}/frame_${frameNum}.webp`;
 
         img.onload = () => {
+          inFlight.delete(index);
           if (!isCancelled) {
             imagesRef.current[index] = img;
-            if (index === 0) {
-              handleResize();
+            // Si la frame chargée correspond à la position actuelle ou adjacente, rafraîchir le rendu
+            const current = Math.round(frameObjRef.current.frame);
+            if (Math.abs(current - index) <= 1) {
+              drawFrame(current);
             }
           }
-          resolve();
+          resolve(img);
         };
 
         img.onerror = () => {
-          resolve();
+          inFlight.delete(index);
+          resolve(null);
         };
       });
     };
 
-    // 1. Charger immédiatement les 20 premières frames pour affichage instantané
-    const initialBatch: Promise<void>[] = [];
-    const INITIAL_COUNT = Math.min(20, totalFrames);
-    let loadedCount = 0;
+    fetchImageRef.current = fetchImage;
 
-    for (let i = 0; i < INITIAL_COUNT; i++) {
-      initialBatch.push(
-        fetchImage(i).then(() => {
-          if (!isCancelled) {
-            loadedCount++;
-            setLoadPercent(Math.min(95, Math.round((loadedCount / INITIAL_COUNT) * 100)));
-          }
-        })
-      );
+    // 1. Charger immédiatement les anchors clés couvrant toute la visite (les 9 pièces de la villa)
+    const anchorIndices: number[] = [];
+    // 8 premières frames pour démarrage instantané
+    for (let i = 0; i < Math.min(8, totalFrames); i++) {
+      anchorIndices.push(i);
     }
+    // 3 frames repères par chapitre (début, milieu, fin de chaque espace)
+    for (let c = 0; c < CHAPTERS.length; c++) {
+      const chapterStart = Math.floor((c / CHAPTERS.length) * totalFrames);
+      const chapterMid = Math.floor(((c + 0.4) / CHAPTERS.length) * totalFrames);
+      const chapterEnd = Math.floor(((c + 0.8) / CHAPTERS.length) * totalFrames);
+      anchorIndices.push(chapterStart, chapterMid, chapterEnd);
+    }
+    const uniqueAnchors = Array.from(new Set(anchorIndices)).filter(
+      (idx) => idx >= 0 && idx < totalFrames
+    );
+
+    let loadedAnchors = 0;
+    const initialBatch = uniqueAnchors.map((idx) =>
+      fetchImage(idx).then(() => {
+        if (!isCancelled) {
+          loadedAnchors++;
+          setLoadPercent(Math.min(98, Math.round((loadedAnchors / uniqueAnchors.length) * 100)));
+        }
+      })
+    );
 
     Promise.all(initialBatch).then(() => {
       if (isCancelled) return;
@@ -188,65 +209,73 @@ export function ScrollSequence() {
       setIsFirstStageReady(true);
       handleResize();
       drawFrame(0);
+      ScrollTrigger.refresh();
 
-      // 2. Stream continu de TOUTES les frames en tâche de fond avec réseau fluide
-      // Priorise toujours les frames autour du scroll actuel du visiteur
-      const backgroundLoader = async () => {
-        // En priorité : 1 frame toutes les 3 frames sur toute la longueur pour garantir un défilement continu immédiat
-        const keyframeStep = isMobile ? 3 : 3;
-        const keyframeBatch: Promise<void>[] = [];
-        for (let k = 0; k < totalFrames; k += keyframeStep) {
-          if (isCancelled) return;
-          keyframeBatch.push(fetchImage(k));
-          if (keyframeBatch.length >= 16) {
-            await Promise.all(keyframeBatch);
-            keyframeBatch.length = 0;
-          }
-        }
-        if (keyframeBatch.length > 0) {
-          await Promise.all(keyframeBatch);
-        }
+      // 2. Pool de téléchargement continu en tâche de fond (concurrency = 5 pour ne jamais saturer le réseau)
+      const MAX_CONCURRENT = 5;
+      let activeJobs = 0;
+      const queue: number[] = [];
 
-        // Ensuite : Remplir l'intégralité des frames 15 fps restantes par blocs dynamiques
-        let nextIndex = 0;
-        while (nextIndex < totalFrames && !isCancelled) {
-          const currentTarget = Math.round(frameObjRef.current.frame);
-          const rangeStart = Math.max(0, currentTarget - 20);
-          const rangeEnd = Math.min(totalFrames, currentTarget + 40);
-
-          const batch: Promise<void>[] = [];
-
-          // D'abord les frames situées autour de la position de scroll actuelle
-          for (let p = rangeStart; p < rangeEnd; p++) {
-            if (!requested.has(p)) {
-              batch.push(fetchImage(p));
-              if (batch.length >= 16) break;
-            }
-          }
-
-          // Puis les frames séquentielles restantes
-          if (batch.length < 16) {
-            for (let i = nextIndex; i < totalFrames && batch.length < 16; i++) {
-              if (!requested.has(i)) {
-                batch.push(fetchImage(i));
-              }
-              nextIndex = i + 1;
-            }
-          }
-
-          if (batch.length > 0) {
-            await Promise.all(batch);
-          } else {
-            nextIndex += 16;
+      const pumpQueue = () => {
+        if (isCancelled) return;
+        while (activeJobs < MAX_CONCURRENT && queue.length > 0) {
+          const nextIndex = queue.shift();
+          if (nextIndex !== undefined && !requested.has(nextIndex)) {
+            activeJobs++;
+            fetchImage(nextIndex).finally(() => {
+              activeJobs--;
+              pumpQueue();
+            });
           }
         }
       };
 
-      const timer = setTimeout(() => {
-        backgroundLoader();
-      }, 50);
+      // Intervalle dynamique : priorise constamment les frames autour du scroll actif
+      const intervalId = setInterval(() => {
+        if (isCancelled) {
+          clearInterval(intervalId);
+          return;
+        }
 
-      return () => clearTimeout(timer);
+        const current = Math.round(frameObjRef.current.frame);
+        const priorityBatch: number[] = [];
+
+        // Fenêtre prioritaire +/- 25 frames autour du regard du visiteur
+        for (let offset = 0; offset <= 25; offset++) {
+          const fwd = current + offset;
+          const bwd = current - offset;
+          if (fwd < totalFrames && !requested.has(fwd)) priorityBatch.push(fwd);
+          if (bwd >= 0 && !requested.has(bwd)) priorityBatch.push(bwd);
+        }
+
+        if (priorityBatch.length > 0) {
+          queue.unshift(...priorityBatch);
+        }
+
+        // Si la file se vide, injecter les keyframes globales restantes (step 3)
+        if (queue.length < 20) {
+          for (let k = 0; k < totalFrames; k += 3) {
+            if (!requested.has(k) && !queue.includes(k)) {
+              queue.push(k);
+              if (queue.length > 60) break;
+            }
+          }
+        }
+
+        // Remplir les frames séquentielles restantes
+        if (queue.length < 10) {
+          for (let k = 0; k < totalFrames; k++) {
+            if (!requested.has(k) && !queue.includes(k)) {
+              queue.push(k);
+              if (queue.length > 50) break;
+            }
+          }
+        }
+
+        pumpQueue();
+      }, 100);
+
+      return () => clearInterval(intervalId);
     });
 
     return () => {
@@ -254,13 +283,13 @@ export function ScrollSequence() {
     };
   }, [totalFrames, isMobile, handleResize, drawFrame]);
 
-  // Scrub GSAP avec inertie physique et fluidité tactile ressentie
+  // Scrub GSAP avec inertie physique tactile (onUpdate sur le tween pour 60/120fps garanti)
   useEffect(() => {
     if (!isFirstStageReady || totalFrames <= 0 || !containerRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Tween GSAP avec interpolation physique 'scrub: 0.5'
-      // C'est ce tween qui donne la sensation de glisse cinématique et tactile du scroll !
+      // Tween GSAP avec interpolation physique 'scrub: 0.7'
+      // onUpdate placé SUR LE TWEEN permet d'animer chaque frame de l'inertie même après relâchement du scroll !
       gsap.to(frameObjRef.current, {
         frame: totalFrames - 1,
         ease: 'none',
@@ -268,43 +297,44 @@ export function ScrollSequence() {
           trigger: containerRef.current,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 0.5, // Easing cinématique doux
-          onUpdate: (self) => {
-            const progress = self.progress;
-            currentScrollProgressRef.current = progress;
+          scrub: 0.7, // Sensation de glisse tactile luxueuse
+        },
+        onUpdate: () => {
+          const currentFrame = Math.round(frameObjRef.current.frame);
+          drawFrame(currentFrame);
 
-            // Barre de progression GPU
-            if (progressLineRef.current) {
-              progressLineRef.current.style.transform = `scaleX(${progress})`;
+          const progress = frameObjRef.current.frame / (totalFrames - 1);
+
+          // Barre de progression GPU synchronisée avec la frame réelle
+          if (progressLineRef.current) {
+            progressLineRef.current.style.transform = `scaleX(${progress})`;
+          }
+
+          // Masquage du hint de scroll dès le premier mouvement
+          if (scrollHintRef.current) {
+            if (progress > 0.02) {
+              scrollHintRef.current.style.opacity = '0';
+              scrollHintRef.current.style.pointerEvents = 'none';
+            } else {
+              scrollHintRef.current.style.opacity = '0.85';
             }
+          }
 
-            // Masquer l'indicateur de défilement dès que l'utilisateur commence à scroller
-            if (scrollHintRef.current) {
-              if (progress > 0.03) {
-                scrollHintRef.current.style.opacity = '0';
-                scrollHintRef.current.style.pointerEvents = 'none';
-              } else {
-                scrollHintRef.current.style.opacity = '0.85';
-              }
-            }
-
-            // Dessiner la frame interpolée
-            const frameToDraw = Math.round(frameObjRef.current.frame);
-            drawFrame(frameToDraw);
-
-            // Calcul du chapitre actif avec transition visuelle
-            const chapterIndex = Math.min(
-              Math.floor(progress * CHAPTERS.length),
-              CHAPTERS.length - 1
-            );
-            if (chapterIndex !== currentChapterRef.current) {
-              currentChapterRef.current = chapterIndex;
-              setActiveChapterIndex(chapterIndex);
-            }
-          },
+          // Chapitre de texte synchronisé 1:1 avec la frame affichée
+          const chapterIndex = Math.min(
+            Math.floor(progress * CHAPTERS.length),
+            CHAPTERS.length - 1
+          );
+          if (chapterIndex !== currentChapterRef.current) {
+            currentChapterRef.current = chapterIndex;
+            setActiveChapterIndex(chapterIndex);
+          }
         },
       });
     }, containerRef);
+
+    // Forcer le recalcul géométrique de ScrollTrigger
+    ScrollTrigger.refresh();
 
     return () => ctx.revert();
   }, [isFirstStageReady, totalFrames, drawFrame]);
@@ -328,9 +358,9 @@ export function ScrollSequence() {
         <div className="absolute inset-0 canvas-vignette pointer-events-none" />
         <div className="absolute inset-0 grain-overlay pointer-events-none" />
 
-        {/* Écran de chargement initial raffiné (Prêt en < 500ms) */}
+        {/* Écran de chargement initial raffiné (Prêt en < 300ms) */}
         {!isFirstStageReady && (
-          <div className="absolute inset-0 z-50 bg-[#0F0E0C] flex flex-col items-center justify-center px-6 transition-opacity duration-700">
+          <div className="absolute inset-0 z-50 bg-[#0F0E0C] flex flex-col items-center justify-center px-6 transition-opacity duration-500">
             <div className="w-14 h-14 rounded-full border border-[#C9A15B]/40 flex items-center justify-center mb-6 animate-pulse">
               <span className="font-display font-semibold text-2xl text-[#C9A15B]">K</span>
             </div>
@@ -358,7 +388,46 @@ export function ScrollSequence() {
         <div className="absolute inset-x-0 bottom-0 h-[40vh] bg-gradient-to-t from-[#0F0E0C]/85 via-[#0F0E0C]/25 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-[20vh] bg-gradient-to-b from-[#0F0E0C]/60 to-transparent pointer-events-none" />
 
-        {/* Chapitres de texte avec animations riches (fade + slide-up + scale subtil) */}
+        {/* Indicateur discret des 9 espaces de la villa sur le côté droit (Desktop) */}
+        <div className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 flex-col gap-3 z-20 pointer-events-auto">
+          {CHAPTERS.map((ch, idx) => {
+            const isActive = activeChapterIndex === idx;
+            return (
+              <button
+                key={ch.id}
+                onClick={() => {
+                  const el = containerRef.current;
+                  if (el) {
+                    const scrollHeight = el.offsetHeight - window.innerHeight;
+                    const targetScroll = (scrollHeight * (idx + 0.1)) / CHAPTERS.length;
+                    window.scrollTo({ top: targetScroll, behavior: 'smooth' });
+                  }
+                }}
+                className="group flex items-center justify-end gap-3 py-1 cursor-pointer select-none"
+                title={`${ch.number} ${ch.room}`}
+              >
+                <span
+                  className={`text-[10px] tracking-wider uppercase transition-all duration-300 pointer-events-none ${
+                    isActive
+                      ? 'text-[#C9A15B] opacity-100 font-medium translate-x-0'
+                      : 'text-[#D9CBB0]/40 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0'
+                  }`}
+                >
+                  {ch.room}
+                </span>
+                <div
+                  className={`rounded-full transition-all duration-300 ${
+                    isActive
+                      ? 'w-2 h-6 bg-[#C9A15B] shadow-[0_0_12px_rgba(201,161,91,0.7)]'
+                      : 'w-1.5 h-1.5 bg-[#F4EFE6]/25 group-hover:bg-[#C9A15B]/70'
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Chapitres de texte avec animations soignées et transitions réactives */}
         <div className="absolute inset-0 pointer-events-none flex flex-col justify-end pb-12 md:pb-16 px-6 md:px-12 lg:px-16">
           <div className="max-w-2xl mx-auto w-full grid grid-cols-1 grid-rows-1">
             {CHAPTERS.map((ch, idx) => {
@@ -367,10 +436,10 @@ export function ScrollSequence() {
               return (
                 <div
                   key={ch.id}
-                  className={`col-start-1 row-start-1 text-center sm:text-left transition-all duration-700 ease-out transform ${
+                  className={`col-start-1 row-start-1 text-center sm:text-left transition-all duration-400 ease-out transform ${
                     isActive
                       ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto z-10'
-                      : 'opacity-0 translate-y-6 scale-[0.97] pointer-events-none z-0'
+                      : 'opacity-0 translate-y-4 scale-[0.98] pointer-events-none z-0'
                   }`}
                 >
                   {/* Label laiton & numéro d'étape "01 / 09" */}

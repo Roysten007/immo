@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-core';
 import path from 'path';
 
 const ARTIFACT_DIR = path.resolve(
-  'C:/Users/ADMIN/.gemini/antigravity-ide/brain/a5c03b14-7b46-4f98-94af-a9331ea809ca'
+  'C:/Users/ADMIN/.gemini/antigravity-ide/brain/bcf9a358-5498-4432-a4eb-df9b8af7baf7'
 );
 const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
