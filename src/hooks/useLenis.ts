@@ -14,6 +14,17 @@ export function useLenis() {
       return;
     }
 
+    // Bypass Lenis sur appareils tactiles / mobiles pour garantir un scroll 120Hz natif
+    // instantané sans friction, sans latence ni inertie artificielle
+    const isTouch =
+      window.matchMedia('(pointer: coarse)').matches ||
+      'ontouchstart' in window ||
+      navigator.maxTouchPoints > 0;
+    if (isTouch) {
+      gsap.ticker.lagSmoothing(0);
+      return;
+    }
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),

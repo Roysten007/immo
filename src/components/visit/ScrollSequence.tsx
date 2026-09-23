@@ -53,7 +53,7 @@ export function ScrollSequence() {
       });
   }, [isMobile]);
 
-  // Dessin sur Canvas plein écran pur et net avec interpolation cover mathématique
+  // Dessin sur Canvas plein écran pur et net avec cadrage adaptatif haute précision
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -99,28 +99,34 @@ export function ScrollSequence() {
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
 
-    // Calcul de couverture plein écran naturel (sans bandes ni découpage artificiel)
+    // Calcul de couverture plein écran immersif naturel
     const ratio = Math.max(cw / nw, ch / nh);
     const rw = nw * ratio;
     const rh = nh * ratio;
     const cx = (cw - rw) * 0.5;
-    const cy = (ch - rh) * 0.5;
+    // Sur mobile, léger centrage à 40% pour équilibrer la hauteur sous plafond et les éléments de premier plan
+    const cy = isMobile ? (ch - rh) * 0.40 : (ch - rh) * 0.5;
 
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
 
     ctx.drawImage(img, 0, 0, nw, nh, cx, cy, rw, rh);
-  }, []);
+  }, [isMobile]);
 
-  // Redimensionnement du Canvas plein écran adapté à la résolution de l'écran
+  // Redimensionnement du Canvas adapté à la résolution de l'écran (Mobile plein écran & Desktop plein écran)
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(window.innerWidth * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
+    const dpr = isMobile
+      ? Math.min(window.devicePixelRatio || 1, 1.5)
+      : Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width > 0 ? rect.width : window.innerWidth;
+    const h = rect.height > 0 ? rect.height : window.innerHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
     drawFrame(Math.round(frameObjRef.current.frame));
-  }, [drawFrame]);
+  }, [drawFrame, isMobile]);
 
   useEffect(() => {
     window.addEventListener('resize', handleResize, { passive: true });
@@ -173,16 +179,20 @@ export function ScrollSequence() {
 
     fetchImageRef.current = fetchImage;
 
-    // 1. Anchors clés couvrant l'ensemble des 9 espaces de la villa en < 300ms
+    // 1. Anchors clés couvrant l'ensemble des 9 espaces de la villa en < 350ms
     const anchorIndices: number[] = [];
-    for (let i = 0; i < Math.min(8, totalFrames); i++) {
+    for (let i = 0; i < Math.min(10, totalFrames); i++) {
       anchorIndices.push(i);
     }
+    // Grille régulière de keyframes : 1 frame tous les 10 index sur l'ensemble de la séquence
+    for (let i = 0; i < totalFrames; i += 10) {
+      anchorIndices.push(i);
+    }
+    // Points précis des 9 chapitres
     for (let c = 0; c < CHAPTERS.length; c++) {
       const chapterStart = Math.floor((c / CHAPTERS.length) * totalFrames);
-      const chapterMid = Math.floor(((c + 0.4) / CHAPTERS.length) * totalFrames);
-      const chapterEnd = Math.floor(((c + 0.8) / CHAPTERS.length) * totalFrames);
-      anchorIndices.push(chapterStart, chapterMid, chapterEnd);
+      const chapterMid = Math.floor(((c + 0.5) / CHAPTERS.length) * totalFrames);
+      anchorIndices.push(chapterStart, chapterMid);
     }
     const uniqueAnchors = Array.from(new Set(anchorIndices)).filter(
       (idx) => idx >= 0 && idx < totalFrames
@@ -206,8 +216,8 @@ export function ScrollSequence() {
       drawFrame(0);
       ScrollTrigger.refresh();
 
-      // 2. Pool de téléchargement continu fluide en tâche de fond (5 connexions max)
-      const MAX_CONCURRENT = 5;
+      // 2. Pool de téléchargement continu fluide en tâche de fond (8 connexions mobile, 12 desktop)
+      const MAX_CONCURRENT = isMobile ? 8 : 12;
       let activeJobs = 0;
       const queue: number[] = [];
 
@@ -248,7 +258,7 @@ export function ScrollSequence() {
 
         // Remplissage progressif des keyframes
         if (queue.length < 20) {
-          for (let k = 0; k < totalFrames; k += 3) {
+          for (let k = 0; k < totalFrames; k += 2) {
             if (!requested.has(k) && !queue.includes(k)) {
               queue.push(k);
               if (queue.length > 60) break;
@@ -289,11 +299,21 @@ export function ScrollSequence() {
           trigger: containerRef.current,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: 0.7, // Inertie cinématique luxueuse
+          scrub: isMobile ? 0.05 : 0.7, // Instantané & direct sur mobile (0.05s), glisse cinématique sur desktop (0.7s)
         },
         onUpdate: () => {
           const currentFrame = Math.round(frameObjRef.current.frame);
           drawFrame(currentFrame);
+
+          // Lookahead immédiat : préchargement ultra-réactif des frames voisines
+          if (fetchImageRef.current) {
+            for (let off = 1; off <= 8; off++) {
+              const ahead = currentFrame + off;
+              if (ahead < totalFrames) fetchImageRef.current(ahead);
+              const behind = currentFrame - off;
+              if (behind >= 0) fetchImageRef.current(behind);
+            }
+          }
 
           const progress = frameObjRef.current.frame / (totalFrames - 1);
 
@@ -325,26 +345,26 @@ export function ScrollSequence() {
     ScrollTrigger.refresh();
 
     return () => ctx.revert();
-  }, [isFirstStageReady, totalFrames, drawFrame]);
+  }, [isFirstStageReady, totalFrames, isMobile, drawFrame]);
 
   return (
     <div
       id="visite"
       ref={containerRef}
       className="relative w-full bg-[#0F0E0C]"
-      style={{ height: '900vh' }}
+      style={{ height: isMobile ? '550vh' : '900vh' }}
     >
-      {/* Conteneur Sticky 100vh Plein Écran */}
-      <div className="sticky top-0 left-0 w-full h-screen overflow-hidden flex items-center justify-center bg-[#0F0E0C]">
-        {/* Canvas plein écran immersif en haute définition native */}
+      {/* Conteneur Sticky 100dvh Plein Écran */}
+      <div className="sticky top-0 left-0 w-full h-[100dvh] overflow-hidden bg-[#0F0E0C]">
+        {/* --- CANVAS IMMERSIF PLEIN ÉCRAN (Bord-à-bord naturel sur Mobile & Desktop) --- */}
         <canvas
           ref={canvasRef}
-          className="w-full h-full object-cover block will-change-transform"
+          className="absolute inset-0 w-full h-full object-cover block will-change-transform z-0"
         />
 
-        {/* Dégradé discret pour la lisibilité des textes sans assombrir la vidéo */}
-        <div className="absolute inset-x-0 bottom-0 h-[38vh] bg-gradient-to-t from-[#0F0E0C]/90 via-[#0F0E0C]/35 to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 top-0 h-[14vh] bg-gradient-to-b from-[#0F0E0C]/45 to-transparent pointer-events-none" />
+        {/* Dégradés d'ambiance cinématiques discrets pour la lisibilité des textes */}
+        <div className="absolute inset-x-0 bottom-0 h-[40vh] md:h-[38vh] bg-gradient-to-t from-[#0F0E0C] via-[#0F0E0C]/60 to-transparent pointer-events-none z-10" />
+        <div className="absolute inset-x-0 top-0 h-[14vh] bg-gradient-to-b from-[#0F0E0C]/70 to-transparent pointer-events-none z-10" />
 
         {/* Écran de chargement initial raffiné (Prêt en < 300ms) */}
         {!isFirstStageReady && (
@@ -372,6 +392,83 @@ export function ScrollSequence() {
           </div>
         )}
 
+        {/* --- MISE EN PAGE MOBILE ÉDITORIALE LUXE (< md) --- */}
+        <div className="flex md:hidden absolute inset-0 flex-col justify-between pt-20 pb-8 px-5 z-20 pointer-events-none">
+          {/* En-tête Mobile : Numéro & Nom de l'espace + Indicateur 9 tirets */}
+          <div className="flex items-center justify-between w-full pointer-events-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#181613]/85 backdrop-blur-md border border-[#C9A15B]/35 shadow-lg">
+              <span className="text-[10px] font-mono tracking-widest text-[#C9A15B] font-semibold">
+                {CHAPTERS[activeChapterIndex]?.number}
+              </span>
+              <span className="text-[10px] tracking-[0.2em] uppercase text-[#F4EFE6] font-semibold font-sans">
+                {CHAPTERS[activeChapterIndex]?.room}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 bg-[#181613]/70 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/5">
+              {CHAPTERS.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    i === activeChapterIndex ? 'w-4 bg-[#C9A15B]' : 'w-1 bg-[#F4EFE6]/25'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Pied Mobile : Titre Haute Couture, Bénéfice & Actions */}
+          <div className="text-center flex flex-col items-center pointer-events-auto px-2 max-w-sm mx-auto">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-[#C9A15B] font-sans font-medium mb-1">
+              {CHAPTERS[activeChapterIndex]?.room}
+            </span>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#F4EFE6] leading-tight mb-2">
+              <span>{CHAPTERS[activeChapterIndex]?.titleRegular} </span>
+              <span className="serif-italic-brass text-[#C9A15B]">
+                {CHAPTERS[activeChapterIndex]?.titleItalic}
+              </span>
+              {CHAPTERS[activeChapterIndex]?.titleSuffix && (
+                <span> {CHAPTERS[activeChapterIndex]?.titleSuffix}</span>
+              )}
+            </h1>
+
+            {CHAPTERS[activeChapterIndex]?.subtitle && (
+              <p className="text-xs text-[#D9CBB0]/90 font-normal leading-relaxed line-clamp-2 mb-3">
+                {CHAPTERS[activeChapterIndex]?.subtitle}
+              </p>
+            )}
+
+            {CHAPTERS[activeChapterIndex]?.cta ? (
+              <div className="flex flex-col gap-2 w-full pt-1">
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('contact-final');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full py-3 rounded-full bg-gradient-to-r from-[#C9A15B] to-[#D8B36F] hover:from-[#D8B36F] hover:to-[#C9A15B] text-[#0F0E0C] text-xs font-bold tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-[#C9A15B]/20 active:scale-95 transition-all"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>{CHAPTERS[activeChapterIndex]?.cta?.primaryText}</span>
+                </button>
+                <a
+                  href="https://wa.me/22900000000?text=Bonjour%20Maison%20Kèmi,%20cette%20visite%20m'a%20séduit(e).%20Je%20souhaite%20en%20savoir%20plus."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 rounded-full border border-[#25D366]/40 bg-[#161512]/90 hover:bg-[#25D366]/10 text-xs text-[#F4EFE6] font-semibold tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  <WhatsAppIcon className="w-3.5 h-3.5 text-[#25D366]" />
+                  <span>{CHAPTERS[activeChapterIndex]?.cta?.whatsappText}</span>
+                </a>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-1.5 opacity-75 text-[9px] uppercase tracking-[0.25em] text-[#C9A15B] pt-1">
+                <span>Glissez pour continuer</span>
+                <ChevronDown className="w-3 h-3 animate-bounce" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* --- MISE EN PAGE DESKTOP (md:flex) --- */}
         {/* Indicateur des 9 espaces de la villa sur le côté droit (Desktop) */}
         <div className="hidden lg:flex absolute right-8 top-1/2 -translate-y-1/2 flex-col gap-3 z-20 pointer-events-auto">
           {CHAPTERS.map((ch, idx) => {
@@ -411,8 +508,8 @@ export function ScrollSequence() {
           })}
         </div>
 
-        {/* Chapitres de texte élégants et lisibles sur toute la largeur */}
-        <div className="absolute inset-0 pointer-events-none flex flex-col justify-end pb-8 sm:pb-12 md:pb-16 px-6 md:px-16">
+        {/* Chapitres de texte élégants et lisibles sur toute la largeur (Desktop) */}
+        <div className="hidden md:flex absolute inset-0 pointer-events-none flex-col justify-end pb-8 sm:pb-12 md:pb-16 px-6 md:px-16 z-10">
           <div className="max-w-2xl mx-auto w-full grid grid-cols-1 grid-rows-1">
             {CHAPTERS.map((ch, idx) => {
               const isActive = activeChapterIndex === idx;
@@ -481,10 +578,10 @@ export function ScrollSequence() {
           </div>
         </div>
 
-        {/* Indicateur discret de scroll au début de la visite */}
+        {/* Indicateur discret de scroll au début de la visite (Desktop) */}
         <div
           ref={scrollHintRef}
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 pointer-events-none opacity-85 transition-opacity duration-300 animate-bounce z-20"
+          className="hidden md:flex absolute bottom-5 left-1/2 -translate-x-1/2 flex-col items-center gap-1.5 pointer-events-none opacity-85 transition-opacity duration-300 animate-bounce z-20"
         >
           <span className="text-[9px] tracking-[0.3em] uppercase text-[#C9A15B] font-medium font-sans">
             Faites défiler
