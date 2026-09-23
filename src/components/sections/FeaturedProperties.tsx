@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { FEATURED_PROPERTIES, type Property } from '../../data/properties';
 import { BedDouble, Bath, Maximize2, MapPin, ArrowUpRight, X, Calendar, CheckCircle2, Trees, Sparkles } from 'lucide-react';
 import { WhatsAppIcon } from '../common/WhatsAppIcon';
@@ -13,6 +13,16 @@ export function FeaturedProperties() {
     if (activeFilter === 'all') return FEATURED_PROPERTIES;
     return FEATURED_PROPERTIES.filter((p) => p.category === activeFilter);
   }, [activeFilter]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedProperty) {
+        setSelectedProperty(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedProperty]);
 
   const filterOptions: { id: FilterCategory; label: string; count: number }[] = [
     { id: 'all', label: 'Toutes les résidences', count: FEATURED_PROPERTIES.length },
@@ -50,7 +60,7 @@ export function FeaturedProperties() {
             <button
               key={opt.id}
               onClick={() => setActiveFilter(opt.id)}
-              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs tracking-wider transition-all duration-300 shrink-0 font-medium ${
+              className={`px-4 sm:px-5 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs tracking-wider transition-all duration-300 shrink-0 font-medium ${
                 isActive
                   ? 'bg-[#C9A15B] text-[#0F0E0C] shadow-lg shadow-[#C9A15B]/15'
                   : 'bg-[#161512] text-[#D9CBB0]/80 hover:text-[#F4EFE6] border border-[#F4EFE6]/08 hover:border-[#C9A15B]/30'
@@ -149,7 +159,7 @@ export function FeaturedProperties() {
 
                 <button
                   onClick={() => setSelectedProperty(prop)}
-                  className="px-3.5 py-2 rounded-full bg-[#1F1D19] group-hover:bg-[#C9A15B] text-[#F4EFE6] group-hover:text-[#0F0E0C] text-[11px] font-medium tracking-wider flex items-center gap-1.5 border border-[#C9A15B]/30 group-hover:border-[#C9A15B] transition-all duration-300 shadow-sm cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full bg-[#1F1D19] group-hover:bg-[#C9A15B] text-[#F4EFE6] group-hover:text-[#0F0E0C] text-[11px] font-medium tracking-wider gap-1.5 border border-[#C9A15B]/30 group-hover:border-[#C9A15B] transition-all duration-300 shadow-sm cursor-pointer"
                   aria-label={`Découvrir la fiche complète de ${prop.title}`}
                 >
                   <span>Dossier</span>
@@ -168,7 +178,7 @@ export function FeaturedProperties() {
             {/* Bouton fermeture */}
             <button
               onClick={() => setSelectedProperty(null)}
-              className="absolute top-5 right-5 p-2 rounded-full bg-[#1A1916] text-[#F4EFE6]/70 hover:text-[#C9A15B] hover:bg-[#25231F] transition-colors"
+              className="absolute top-5 right-5 w-11 h-11 flex items-center justify-center rounded-full bg-[#1A1916] text-[#F4EFE6]/70 hover:text-[#C9A15B] hover:bg-[#25231F] transition-colors"
               aria-label="Fermer le dossier"
             >
               <X className="w-5 h-5" />

@@ -134,7 +134,8 @@ export function Footer() {
 
         <button
           onClick={scrollToTop}
-          className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#C9A15B] hover:text-[#D8B36F] transition-colors group"
+          className="min-h-[44px] px-3 py-2 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-[#C9A15B] hover:text-[#D8B36F] hover:bg-[#161512] rounded-lg transition-colors group cursor-pointer"
+          aria-label="Remonter en haut de la page"
         >
           <span>Remonter en haut</span>
           <ArrowUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />

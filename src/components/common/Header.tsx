@@ -32,6 +32,16 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen]);
+
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
     const element = document.getElementById(id);
@@ -129,8 +139,9 @@ export function Header() {
         {/* Mobile menu trigger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-[#F4EFE6] hover:text-[#C9A15B] transition-colors"
-          aria-label="Ouvrir le menu"
+          className="lg:hidden w-11 h-11 flex items-center justify-center text-[#F4EFE6] hover:text-[#C9A15B] transition-colors rounded-lg"
+          aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={mobileMenuOpen}
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -138,40 +149,40 @@ export function Header() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-full bg-[#0F0E0C]/98 backdrop-blur-xl border-b border-[#F4EFE6]/10 px-6 py-8 shadow-2xl flex flex-col gap-6 text-sm uppercase tracking-widest text-[#F4EFE6]">
+        <div className="lg:hidden fixed inset-x-0 top-full bg-[#0F0E0C]/98 backdrop-blur-xl border-b border-[#F4EFE6]/10 px-6 py-8 shadow-2xl flex flex-col gap-2 text-sm uppercase tracking-widest text-[#F4EFE6]">
           <button
             onClick={() => scrollToSection('visite')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             La Visite Séquentielle
           </button>
           <button
             onClick={() => scrollToSection('biens')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             Nos Propriétés d'Exception
           </button>
           <button
             onClick={() => scrollToSection('processus')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             Processus d'Acquisition
           </button>
           <button
             onClick={() => scrollToSection('garanties')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             Nos 3 Garanties
           </button>
           <button
             onClick={() => scrollToSection('estimation')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             Faire Estimer son Bien
           </button>
           <button
             onClick={() => scrollToSection('faq')}
-            className="text-left py-2 hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
+            className="text-left py-3 min-h-[44px] flex items-center hover:text-[#C9A15B] border-b border-[#F4EFE6]/05"
           >
             Questions Fréquentes
           </button>
@@ -181,14 +192,14 @@ export function Header() {
               href="https://wa.me/22900000000?text=Bonjour%20Maison%20Kèmi,%20je%20souhaite%20des%20renseignements%20sur%20vos%20villas%20de%20prestige."
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-3 rounded-full border border-[#25D366]/40 bg-[#25D366]/10 text-center text-xs font-semibold text-[#F4EFE6] flex items-center justify-center gap-2"
+              className="w-full py-3 min-h-[44px] rounded-full border border-[#25D366]/40 bg-[#25D366]/10 text-center text-xs font-semibold text-[#F4EFE6] flex items-center justify-center gap-2"
             >
               <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />
               <span>Contacter sur WhatsApp</span>
             </a>
             <button
               onClick={() => scrollToSection('contact-final')}
-              className="w-full py-3 rounded-full bg-[#C9A15B] text-[#0F0E0C] text-center text-xs font-semibold"
+              className="w-full py-3 min-h-[44px] rounded-full bg-[#C9A15B] text-[#0F0E0C] text-center text-xs font-semibold flex items-center justify-center"
             >
               Réserver une Visite Privée
             </button>

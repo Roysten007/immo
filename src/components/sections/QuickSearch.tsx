@@ -128,21 +128,21 @@ export function QuickSearch() {
             <button
               type="button"
               onClick={() => quickFilter('villa')}
-              className="px-2.5 py-1 rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
             >
               Villa avec piscine
             </button>
             <button
               type="button"
               onClick={() => quickFilter('penthouse')}
-              className="px-2.5 py-1 rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
             >
               Penthouse vue dégagée
             </button>
             <button
               type="button"
               onClick={() => quickFilter('manoir')}
-              className="px-2.5 py-1 rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 min-h-[44px] inline-flex items-center rounded-lg bg-[#1C1A15] hover:bg-[#C9A15B]/15 text-[#F4EFE6]/80 hover:text-[#C9A15B] border border-[#F4EFE6]/06 transition-colors cursor-pointer"
             >
               Domaine sécurisé
             </button>

@@ -85,7 +85,7 @@ export function Neighborhoods() {
           <button
             key={n.id}
             onClick={() => setActiveTab(n.id)}
-            className={`px-4 py-2 rounded-full text-xs uppercase tracking-wider font-medium transition-all shrink-0 ${
+            className={`px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs uppercase tracking-wider font-medium transition-all shrink-0 ${
               activeTab === n.id
                 ? 'bg-[#C9A15B] text-[#0F0E0C] shadow-lg shadow-[#C9A15B]/20 font-semibold'
                 : 'bg-[#161512] text-[#D9CBB0]/70 border border-[#F4EFE6]/08 hover:text-[#F4EFE6] hover:border-[#C9A15B]/30'

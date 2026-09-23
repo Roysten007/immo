@@ -48,7 +48,7 @@ export function FreeValuation() {
             </p>
             <button
               onClick={() => setSubmitted(false)}
-              className="px-6 py-2 rounded-full border border-[#C9A15B]/40 text-xs text-[#C9A15B] hover:bg-[#C9A15B]/10 transition-colors font-medium"
+              className="px-6 py-3 min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#C9A15B]/40 text-xs text-[#C9A15B] hover:bg-[#C9A15B]/10 transition-colors font-medium cursor-pointer"
             >
               Envoyer une autre demande
             </button>
