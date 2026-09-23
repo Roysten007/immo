@@ -487,6 +487,7 @@ export function ScrollSequence() {
                 }}
                 className="group flex items-center justify-end gap-3 py-1 cursor-pointer select-none"
                 title={`${ch.number} ${ch.room}`}
+                aria-label={`Accéder au chapitre ${ch.number} : ${ch.room}`}
               >
                 <span
                   className={`text-[10px] tracking-wider uppercase transition-all duration-300 pointer-events-none ${

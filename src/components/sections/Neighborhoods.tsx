@@ -80,12 +80,15 @@ export function Neighborhoods() {
       </div>
 
       {/* Onglets de sélection */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+      <div role="tablist" aria-label="Sélection des quartiers" className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
         {NEIGHBORHOODS.map((n) => (
           <button
             key={n.id}
+            role="tab"
+            aria-selected={activeTab === n.id}
+            aria-label={`Afficher le quartier ${n.name}`}
             onClick={() => setActiveTab(n.id)}
-            className={`px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs uppercase tracking-wider font-medium transition-all shrink-0 ${
+            className={`px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full text-xs uppercase tracking-wider font-medium transition-all shrink-0 cursor-pointer ${
               activeTab === n.id
                 ? 'bg-[#C9A15B] text-[#0F0E0C] shadow-lg shadow-[#C9A15B]/20 font-semibold'
                 : 'bg-[#161512] text-[#D9CBB0]/70 border border-[#F4EFE6]/08 hover:text-[#F4EFE6] hover:border-[#C9A15B]/30'
@@ -161,7 +164,8 @@ export function Neighborhoods() {
                 const el = document.getElementById('biens');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="px-4 py-2 rounded-full border border-[#C9A15B]/40 hover:border-[#C9A15B] text-xs text-[#F4EFE6] font-medium flex items-center gap-1.5 transition-colors hover:bg-[#C9A15B]/10"
+              className="px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center rounded-full border border-[#C9A15B]/40 hover:border-[#C9A15B] text-xs text-[#F4EFE6] font-medium gap-1.5 transition-colors hover:bg-[#C9A15B]/10 cursor-pointer"
+              aria-label={`Voir les biens disponibles à ${activeNeighborhood.name}`}
             >
               <span>Voir les biens</span>
               <ArrowUpRight className="w-3.5 h-3.5 text-[#C9A15B]" />

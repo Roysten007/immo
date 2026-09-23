@@ -174,7 +174,12 @@ export function FeaturedProperties() {
       {/* Modal de détail du bien (Présentation de prestige) */}
       {selectedProperty && (
         <div className="fixed inset-0 z-50 bg-[#0F0E0C]/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in duration-300">
-          <div className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto bg-[#141310] border border-[#C9A15B]/40 rounded-2xl p-6 sm:p-8 md:p-10 shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-property-title"
+            className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto bg-[#141310] border border-[#C9A15B]/40 rounded-2xl p-6 sm:p-8 md:p-10 shadow-2xl"
+          >
             {/* Bouton fermeture */}
             <button
               onClick={() => setSelectedProperty(null)}
@@ -210,7 +215,7 @@ export function FeaturedProperties() {
               <span>{selectedProperty.outdoorSurface}</span>
             </div>
 
-            <h3 className="font-display text-2xl sm:text-3xl text-[#F4EFE6] font-medium mb-3">
+            <h3 id="modal-property-title" className="font-display text-2xl sm:text-3xl text-[#F4EFE6] font-medium mb-3">
               {selectedProperty.title}
             </h3>
 

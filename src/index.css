@@ -39,6 +39,12 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #C9A15B;
   }
+
+  /* Focus visible accessible pour la navigation au clavier */
+  :focus-visible {
+    outline: 2px solid #C9A15B;
+    outline-offset: 3px;
+  }
 }
 
 /* Typography Utilities: Outfit (Titles) & Montserrat (Body/UI) */
