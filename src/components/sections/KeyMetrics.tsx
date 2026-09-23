@@ -95,7 +95,7 @@ export function KeyMetrics() {
       ref={containerRef}
       className="py-24 px-6 md:px-12 max-w-7xl mx-auto border-y border-[#F4EFE6]/06"
     >
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10">
         {METRICS.map((item, idx) => {
           const Icon = item.icon;
 

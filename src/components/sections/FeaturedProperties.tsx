@@ -219,17 +219,17 @@ export function FeaturedProperties() {
             </p>
 
             {/* Grille des caractéristiques */}
-            <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-[#1A1815] border border-[#F4EFE6]/06 mb-6 text-xs text-[#D9CBB0]">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-[#1A1815] border border-[#F4EFE6]/06 mb-6 text-xs text-[#D9CBB0]">
+              <div className="flex sm:flex-col justify-between sm:justify-start">
                 <span className="text-[10px] text-[#D9CBB0]/60 uppercase tracking-wider block">Chambres</span>
                 <span className="text-sm font-medium text-[#F4EFE6]">{selectedProperty.bedrooms} suites privatives</span>
               </div>
-              <div className="border-x border-[#F4EFE6]/08 px-3">
+              <div className="border-t sm:border-t-0 sm:border-x border-[#F4EFE6]/08 pt-2 sm:pt-0 sm:px-3 flex sm:flex-col justify-between sm:justify-start">
                 <span className="text-[10px] text-[#D9CBB0]/60 uppercase tracking-wider block">Salles de bain</span>
                 <span className="text-sm font-medium text-[#F4EFE6]">{selectedProperty.bathrooms} en suite</span>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] text-[#D9CBB0]/60 uppercase tracking-wider block">Surface habitables</span>
+              <div className="border-t sm:border-t-0 border-[#F4EFE6]/08 pt-2 sm:pt-0 sm:text-right flex sm:flex-col justify-between sm:justify-start sm:items-end">
+                <span className="text-[10px] text-[#D9CBB0]/60 uppercase tracking-wider block">Surface habitable</span>
                 <span className="text-sm font-medium text-[#F4EFE6]">{selectedProperty.surface} m²</span>
               </div>
             </div>
