@@ -99,34 +99,113 @@ export function ScrollSequence() {
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
 
-    // Calcul de couverture plein écran immersif naturel
-    const ratio = Math.max(cw / nw, ch / nh);
-    const rw = nw * ratio;
-    const rh = nh * ratio;
-    const cx = (cw - rw) * 0.5;
-    // Sur mobile, léger centrage à 40% pour équilibrer la hauteur sous plafond et les éléments de premier plan
-    const cy = isMobile ? (ch - rh) * 0.40 : (ch - rh) * 0.5;
+    if (isMobile) {
+      // --- MODE MOBILE LUXE CINÉMATIQUE HAUTE PRÉCISION ---
+      // 1. Fond d'ambiance bokeh immersif (profondeur de champ cinématique)
+      const bgAspect = cw / ch;
+      const bgSw = nh * bgAspect;
+      const bgSx = (nw - bgSw) * 0.5;
+      
+      ctx.save();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'low';
+      if ('filter' in ctx) {
+        ctx.filter = 'blur(12px) brightness(0.6)';
+      }
+      ctx.drawImage(img, bgSx, 0, bgSw, nh, 0, 0, cw, ch);
+      ctx.restore();
 
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+      // Voile sombre subtil pour sublimer le contraste et l'éclairage de la villa
+      ctx.fillStyle = 'rgba(15, 14, 12, 0.65)';
+      ctx.fillRect(0, 0, cw, ch);
 
-    ctx.drawImage(img, 0, 0, nw, nh, cx, cy, rw, rh);
+      // 2. Fenêtre d'orfèvrerie architecturale : Rendu SUPER-SHARP supersamplé
+      // Ratio 16:11.5 équilibrant ciel et jardin sans aucun rognage destructeur
+      const targetAspect = 16 / 11.5;
+      const fgSw = Math.min(nw, Math.round(nh * targetAspect));
+      const fgSh = Math.round(fgSw / targetAspect);
+      const fgSx = Math.round((nw - fgSw) * 0.5);
+      const fgSy = Math.round((nh - fgSh) * 0.35); // Cadrage architectural noble
+
+      // Marges élégantes (4% de chaque côté)
+      const marginX = Math.round(cw * 0.04);
+      const destW = cw - marginX * 2;
+      const destH = Math.round(destW / targetAspect);
+      // Positionnement vertical optimal : démarre avec aisance sous le badge chapitre
+      const destX = marginX;
+      const destY = Math.round(ch * 0.14);
+
+      // Découpe arrondie moderne (rayon 20px CSS adapté au DPR)
+      const radius = Math.round(20 * (cw / (window.innerWidth || 390)));
+
+      ctx.save();
+      // Ombre portée profonde et douce style galerie d'art
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = Math.round(28 * (cw / 390));
+      ctx.shadowOffsetY = Math.round(14 * (cw / 390));
+
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(destX, destY, destW, destH, radius);
+      } else {
+        ctx.rect(destX, destY, destW, destH);
+      }
+      ctx.clip();
+
+      // Dessin de l'image architecturale supersamplée (100% nette)
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, fgSx, fgSy, fgSw, fgSh, destX, destY, destW, destH);
+      ctx.restore();
+
+      // Fin liseré laiton champagne doré (#C9A15B)
+      ctx.save();
+      ctx.strokeStyle = 'rgba(201, 161, 91, 0.5)';
+      ctx.lineWidth = Math.max(1.5, Math.round(cw / 390));
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(destX, destY, destW, destH, radius);
+      } else {
+        ctx.rect(destX, destY, destW, destH);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      // --- MODE DESKTOP : PLEIN ÉCRAN CINÉMATIQUE 16:9 ---
+      const canvasAspect = cw / ch;
+      const imgAspect = nw / nh;
+      let sx = 0;
+      let sy = 0;
+      let sw = nw;
+      let sh = nh;
+
+      if (canvasAspect < imgAspect) {
+        sw = nh * canvasAspect;
+        sx = (nw - sw) * 0.5;
+      } else {
+        sh = nw / canvasAspect;
+        sy = (nh - sh) * 0.5;
+      }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+    }
   }, [isMobile]);
 
-  // Redimensionnement du Canvas adapté à la résolution de l'écran (Mobile plein écran & Desktop plein écran)
+  // Redimensionnement du Canvas adapté à la résolution Retina de l'écran (Mobile & Desktop)
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dpr = isMobile
-      ? Math.min(window.devicePixelRatio || 1, 1.5)
-      : Math.min(window.devicePixelRatio || 1, 2);
+    // Mobile : DPR jusqu'à 2.5 pour une netteté cristalline sur écrans Retina (iPhone 3x, Samsung)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     const rect = canvas.getBoundingClientRect();
     const w = rect.width > 0 ? rect.width : window.innerWidth;
     const h = rect.height > 0 ? rect.height : window.innerHeight;
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     drawFrame(Math.round(frameObjRef.current.frame));
-  }, [drawFrame, isMobile]);
+  }, [drawFrame]);
 
   useEffect(() => {
     window.addEventListener('resize', handleResize, { passive: true });

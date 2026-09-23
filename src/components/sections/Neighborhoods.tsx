@@ -18,7 +18,7 @@ const NEIGHBORHOODS: Neighborhood[] = [
     name: "Cocody Ambassades",
     tagline: "Le prestige diplomatique & la canopée séculaire",
     description: "Allées verdoyantes hautement sécurisées, résidences d'ambassadeurs et vastes propriétés coloniales ou contemporaines d'exception.",
-    image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+    image: "/neighborhoods/cocody.webp",
     avgPrice: "1 250 000 FCFA/m²",
     vibe: "Calme, arboré, ultra-sécurisé",
     highlights: ["Sécurité 24/7", "Écoles internationales", "Canopée préservée"]
@@ -28,7 +28,7 @@ const NEIGHBORHOODS: Neighborhood[] = [
     name: "Plateau Marina",
     tagline: "L'énergie cosmopolite face à la lagune",
     description: "Le quartier d'affaires et de vie nocturne chic. Penthouses aux vues vertigineuses sur la baie et accès piéton aux restaurants étoilés.",
-    image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
+    image: "/neighborhoods/plateau.webp",
     avgPrice: "1 100 000 FCFA/m²",
     vibe: "Moderne, vibrant, panoramique",
     highlights: ["Vue panoramique", "Marina privée", "Vie culturelle"]
@@ -38,7 +38,7 @@ const NEIGHBORHOODS: Neighborhood[] = [
     name: "Riviera Golf",
     tagline: "L'élégance sportive au bord du green",
     description: "Havre de paix pour les passionnés de golf et de nature. Domaines privés clôturés, architecture avant-gardiste et quiétude totale.",
-    image: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+    image: "/neighborhoods/riviera.webp",
     avgPrice: "980 000 FCFA/m²",
     vibe: "Verdoyant, exclusif, sportif",
     highlights: ["Parcours 18 trous", "Club-house", "Parcs paysagers"]
@@ -48,7 +48,7 @@ const NEIGHBORHOODS: Neighborhood[] = [
     name: "Zone 4 Résidentielle",
     tagline: "L'art de vivre épicurien et balnéaire",
     description: "Quartier prisé des expatriés et esthètes. Gastronomie réputée, boutiques de créateurs et villas intimistes avec jardins luxuriants.",
-    image: "https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=800&q=80",
+    image: "/neighborhoods/zone4.webp",
     avgPrice: "920 000 FCFA/m²",
     vibe: "Épicurien, chic, accessible",
     highlights: ["Haute gastronomie", "Proximité aéroport", "Ambiance conviviale"]
@@ -60,7 +60,7 @@ export function Neighborhoods() {
   const activeNeighborhood = NEIGHBORHOODS.find((n) => n.id === activeTab) || NEIGHBORHOODS[0];
 
   return (
-    <section className="py-28 px-6 md:px-12 max-w-7xl mx-auto">
+    <section id="quartiers" className="py-28 px-6 md:px-12 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
         <div>
           <div className="flex items-center gap-2.5 mb-3">

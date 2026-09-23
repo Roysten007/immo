@@ -103,7 +103,7 @@ export const FEATURED_PROPERTIES: Property[] = [
     bathrooms: 4,
     surface: 410,
     outdoorSurface: "Rooftop 130 m²",
-    image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
+    image: "/properties/prop-sky-garden.webp",
     tagline: "Rooftop privatif suspendu au-dessus de la lagune, jacuzzi panoramique et finitions marbre.",
     description: "Dominant la baie avec une perspective à 270 degrés, ce penthouse déploie un salon d'angle spectaculaire ouvert sur un rooftop paysager doté d'un jacuzzi en marbre noir et cuisine d'extérieur.",
     features: ["Rooftop paysager 130 m²", "Jacuzzi à débordement", "Vue panoramique 270°", "Accès ascenseur privé à code"]
@@ -121,7 +121,7 @@ export const FEATURED_PROPERTIES: Property[] = [
     bathrooms: 7,
     surface: 860,
     outdoorSurface: "Parc 3 500 m²",
-    image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80",
+    image: "/properties/prop-palmes.webp",
     tagline: "Propriété d'envergure nichée au cœur d'un parc tropical clôturé de 3 500 m².",
     description: "Une demeure de maître combinant architecture néo-coloniale et domotique contemporaine. Piscine semi-olympique, pavillon de service indépendant, héliport d'appoint et sécurité privée renforcée.",
     features: ["Parc tropical 3 500 m²", "Piscine 25 mètres", "Pavillon de garde & dépendances", "Générateur & forage dédiés"]
