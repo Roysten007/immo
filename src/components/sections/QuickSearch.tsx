@@ -21,7 +21,7 @@ export function QuickSearch() {
   return (
     <section id="recherche" className="relative z-20 py-20 md:py-32 px-6 md:px-12 max-w-6xl mx-auto">
       {/* Lueur d'ambiance en arrière-plan */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] bg-[#C9A15B]/[0.035] rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(700px,100vw)] h-[300px] max-w-full bg-[#C9A15B]/[0.035] rounded-full blur-[140px] pointer-events-none" />
 
       {/* En-tête de recherche spacieux et élégant */}
       <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14 relative z-10">

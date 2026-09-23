@@ -84,7 +84,7 @@ export function Testimonials() {
   return (
     <section id="temoignages" className="py-28 md:py-36 relative overflow-hidden">
       {/* Lueur d'ambiance d'arrière-plan */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[400px] bg-[#C9A15B]/[0.025] rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(900px,100vw)] h-[400px] max-w-full bg-[#C9A15B]/[0.025] rounded-full blur-[160px] pointer-events-none" />
 
       {/* En-tête de section avec commandes de carrousel */}
       <div className="max-w-7xl mx-auto px-6 md:px-12 mb-14 md:mb-16">
@@ -140,7 +140,7 @@ export function Testimonials() {
           {duplicatedList.map((item, idx) => (
             <div
               key={idx}
-              className="w-[340px] sm:w-[420px] md:w-[460px] shrink-0 rounded-3xl bg-[#141310]/95 backdrop-blur-2xl border border-[#F4EFE6]/10 hover:border-[#C9A15B]/50 p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 shadow-2xl hover:shadow-[0_20px_50px_-15px_rgba(201,161,91,0.18)] select-none"
+              className="w-[85vw] max-w-[340px] sm:max-w-[420px] md:max-w-[460px] shrink-0 rounded-3xl bg-[#141310]/95 backdrop-blur-2xl border border-[#F4EFE6]/10 hover:border-[#C9A15B]/50 p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 shadow-2xl hover:shadow-[0_20px_50px_-15px_rgba(201,161,91,0.18)] select-none"
             >
               <div>
                 {/* Étoiles & Guimet */}

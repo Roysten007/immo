@@ -8,7 +8,7 @@ export function FinalCTA() {
       className="relative py-32 px-6 md:px-12 overflow-hidden bg-gradient-to-b from-[#0F0E0C] via-[#2A1713] to-[#0F0E0C] border-t border-[#F4EFE6]/08"
     >
       {/* Lueur subtile en arrière-plan */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#B5654A]/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(600px,100vw)] h-[min(600px,100vw)] max-w-full bg-[#B5654A]/15 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center">
         <div className="w-14 h-14 rounded-full border border-[#C9A15B]/40 flex items-center justify-center mb-6 bg-[#181613] shadow-2xl">

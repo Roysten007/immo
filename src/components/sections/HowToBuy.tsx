@@ -175,7 +175,7 @@ export function HowToBuy() {
       className="py-32 md:py-44 px-6 md:px-12 max-w-6xl mx-auto relative overflow-hidden scroll-mt-24"
     >
       {/* Lueur d'ambiance d'arrière-plan */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[550px] bg-[#C9A15B]/[0.03] rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(800px,100vw)] h-[550px] max-w-full bg-[#C9A15B]/[0.03] rounded-full blur-[160px] pointer-events-none" />
 
       {/* En-tête de section centré et aéré */}
       <div className="text-center max-w-2xl mx-auto mb-20 md:mb-28 relative z-10">
