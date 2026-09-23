@@ -31,7 +31,7 @@ export function QuickSearch() {
             Sourcing d'Exception
           </span>
         </div>
-        <h2 className="font-display text-3xl sm:text-4xl text-[#F4EFE6] font-medium leading-tight mb-3">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-[#F4EFE6] font-medium leading-tight mb-3">
           Trouvez votre <span className="text-[#C9A15B]">prochaine adresse.</span>
         </h2>
         <p className="text-xs sm:text-sm text-[#D9CBB0]/75 font-light leading-relaxed max-w-md mx-auto">

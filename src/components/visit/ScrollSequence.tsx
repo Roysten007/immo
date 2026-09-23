@@ -422,7 +422,7 @@ export function ScrollSequence() {
             <span className="text-[10px] uppercase tracking-[0.25em] text-[#C9A15B] font-sans font-medium mb-1">
               {CHAPTERS[activeChapterIndex]?.room}
             </span>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#F4EFE6] leading-tight mb-2">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#F4EFE6] leading-tight mb-2">
               <span>{CHAPTERS[activeChapterIndex]?.titleRegular} </span>
               <span className="serif-italic-brass text-[#C9A15B]">
                 {CHAPTERS[activeChapterIndex]?.titleItalic}

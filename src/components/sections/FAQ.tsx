@@ -18,7 +18,7 @@ export function FAQ() {
             Transparence Intégrale
           </span>
         </div>
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-[#F4EFE6] font-medium leading-tight mb-3">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#F4EFE6] font-medium leading-tight mb-3">
           Foire aux questions <br />
           <span className="text-[#C9A15B]">& cadre d'acquisition.</span>
         </h2>

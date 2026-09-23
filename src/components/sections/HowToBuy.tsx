@@ -185,7 +185,7 @@ export function HowToBuy() {
             Protocole d'Acquisition
           </span>
         </div>
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-[#F4EFE6] font-medium leading-tight mb-4">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#F4EFE6] font-medium leading-tight mb-4">
           De la recherche <br />
           <span className="text-[#C9A15B]">aux clés en 4 temps.</span>
         </h2>
@@ -320,7 +320,7 @@ export function HowToBuy() {
                 {/* Numéro géant au tracé épuré (haut gauche) & Badge de phase */}
                 <div className="flex items-start justify-between mb-6 relative z-10">
                   <div>
-                    <span className="font-display text-5xl sm:text-6xl font-light text-[#C9A15B] block leading-none mb-2 tracking-tight">
+                    <span className="font-display text-4xl sm:text-5xl md:text-6xl font-light text-[#C9A15B] block leading-none mb-2 tracking-tight">
                       {step.number}
                     </span>
                     <span className="text-[10px] uppercase tracking-[0.25em] text-[#D9CBB0]/60 font-semibold font-sans">

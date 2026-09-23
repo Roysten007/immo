@@ -96,7 +96,7 @@ export function Testimonials() {
                 Retours d'Acquéreurs
               </span>
             </div>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-[#F4EFE6] font-medium leading-tight">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#F4EFE6] font-medium leading-tight">
               La confiance <br />
               <span className="text-[#C9A15B]">de nos résidents.</span>
             </h2>

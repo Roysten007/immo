@@ -108,7 +108,7 @@ export function KeyMetrics() {
                 <Icon className="w-6 h-6" />
               </div>
 
-              <div className="flex items-baseline gap-1 mb-2 font-display text-3xl sm:text-4xl text-[#F4EFE6] font-medium">
+              <div className="flex items-baseline gap-1 mb-2 font-display text-2xl sm:text-3xl md:text-4xl text-[#F4EFE6] font-medium">
                 {item.prefix && <span className="text-[#C9A15B]">{item.prefix}</span>}
                 <span className="tabular-nums">{counts[idx]}</span>
                 <span className="text-xl sm:text-2xl text-[#C9A15B]">{item.suffix}</span>

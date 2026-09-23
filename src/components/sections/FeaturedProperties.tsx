@@ -32,7 +32,7 @@ export function FeaturedProperties() {
               Portefeuille Privé & Mandats
             </span>
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-[#F4EFE6] font-medium leading-[1.15]">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-[#F4EFE6] font-medium leading-[1.15]">
             Résidences d'architecte <br />
             <span className="serif-italic-brass">sélectionnées avec rigueur.</span>
           </h2>

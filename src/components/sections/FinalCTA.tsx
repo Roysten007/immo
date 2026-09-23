@@ -19,7 +19,7 @@ export function FinalCTA() {
           Votre Nouvelle Adresse
         </span>
 
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F4EFE6] font-medium leading-[1.1] tracking-tight mb-4">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-[#F4EFE6] font-medium leading-[1.1] tracking-tight mb-4">
           Cette visite peut être <br />
           <span className="text-[#C9A15B]">la vôtre dès cette semaine.</span>
         </h2>
