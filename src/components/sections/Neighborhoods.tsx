@@ -103,6 +103,7 @@ export function Neighborhoods() {
           <img
             src={activeNeighborhood.image}
             alt={activeNeighborhood.name}
+            loading="lazy"
             className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0F0E0C] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#0F0E0C]" />

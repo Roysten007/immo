@@ -39,19 +39,19 @@ export function ScrollSequence() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Charger les métadonnées complètes de la séquence
+  // Charger les métadonnées complètes de la séquence (utilisation des frames HD 1600x900)
   useEffect(() => {
     fetch('/sequence-meta.json')
       .then((res) => res.json())
       .then((data: SequenceMeta) => {
-        const count = isMobile ? data.mobile.count : data.desktop.count;
+        const count = data.desktop?.count || 1351;
         setTotalFrames(count);
       })
       .catch((err) => {
         console.warn('Erreur chargement sequence-meta.json, utilisation des valeurs par défaut', err);
-        setTotalFrames(isMobile ? 720 : 1351);
+        setTotalFrames(1351);
       });
-  }, [isMobile]);
+  }, []);
 
   // Dessin sur Canvas plein écran pur et net avec cadrage adaptatif haute précision
   const drawFrame = useCallback((frameIndex: number) => {
@@ -108,7 +108,7 @@ export function ScrollSequence() {
     const cy = isMobile ? (ch - rh) * 0.40 : (ch - rh) * 0.5;
 
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = isMobile ? 'medium' : 'high';
+    ctx.imageSmoothingQuality = 'high';
 
     ctx.drawImage(img, 0, 0, nw, nh, cx, cy, rw, rh);
   }, [isMobile]);
@@ -140,7 +140,8 @@ export function ScrollSequence() {
     if (totalFrames <= 0) return;
 
     let isCancelled = false;
-    const folder = isMobile ? '/frames-mobile' : '/frames';
+    // Toujours charger les frames HD 1600x900 (/frames) pour une netteté cristalline sur mobile et desktop
+    const folder = '/frames';
     imagesRef.current = new Array(totalFrames).fill(null);
     const requested = new Set<number>();
     const inFlight = new Set<number>();
@@ -184,8 +185,8 @@ export function ScrollSequence() {
     for (let i = 0; i < Math.min(10, totalFrames); i++) {
       anchorIndices.push(i);
     }
-    // Grille régulière de keyframes : 1 frame tous les 10 index sur l'ensemble de la séquence
-    for (let i = 0; i < totalFrames; i += 10) {
+    // Grille régulière de keyframes : 1 frame tous les 15 index sur l'ensemble de la séquence (~90 keyframes HD)
+    for (let i = 0; i < totalFrames; i += 15) {
       anchorIndices.push(i);
     }
     // Points précis des 9 chapitres
@@ -307,7 +308,7 @@ export function ScrollSequence() {
 
           // Lookahead immédiat : préchargement ultra-réactif des frames voisines
           if (fetchImageRef.current) {
-            for (let off = 1; off <= 8; off++) {
+            for (let off = 1; off <= 10; off++) {
               const ahead = currentFrame + off;
               if (ahead < totalFrames) fetchImageRef.current(ahead);
               const behind = currentFrame - off;
