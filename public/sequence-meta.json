@@ -9,10 +9,12 @@
   },
   "mobile": {
     "count": 720,
-    "totalBytes": 14511164,
-    "totalSizeMB": "13.84",
-    "avgKB": "19.7",
-    "maxKB": "30.0",
-    "fps": 8
+    "totalBytes": 22348336,
+    "totalSizeMB": "21.31",
+    "avgKB": "30.3",
+    "maxKB": "64.9",
+    "fps": 8,
+    "width": 720,
+    "height": 1280
   }
 }

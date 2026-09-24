@@ -22,7 +22,7 @@ export const CHAPTERS: Chapter[] = [
     titleRegular: "Imaginez avoir ",
     titleItalic: "votre maison d'exception.",
     subtitle: "Franchir cette double porte chaque soir, laisser le bruit derrière vous et retrouver la quiétude absolue de votre domaine.",
-    progressStart: 0 / 9,
+    progressStart: 0,
     progressEnd: 1 / 9
   },
   {

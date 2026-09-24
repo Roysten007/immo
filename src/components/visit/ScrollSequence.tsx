@@ -39,21 +39,21 @@ export function ScrollSequence() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Charger les métadonnées complètes de la séquence (utilisation des frames HD 1600x900)
+  // Charger les métadonnées de la séquence selon mobile / desktop
   useEffect(() => {
     fetch('/sequence-meta.json')
       .then((res) => res.json())
       .then((data: SequenceMeta) => {
-        const count = data.desktop?.count || 1351;
+        const count = isMobile ? (data.mobile?.count || 720) : (data.desktop?.count || 1351);
         setTotalFrames(count);
       })
       .catch((err) => {
         console.warn('Erreur chargement sequence-meta.json, utilisation des valeurs par défaut', err);
-        setTotalFrames(1351);
+        setTotalFrames(isMobile ? 720 : 1351);
       });
-  }, []);
+  }, [isMobile]);
 
-  // Dessin sur Canvas plein écran pur et net avec cadrage adaptatif haute précision
+  // Dessin sur Canvas plein écran pur, fluide à 60 FPS et net sans filtres lourds
   const drawFrame = useCallback((frameIndex: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -77,8 +77,9 @@ export function ScrollSequence() {
     if (!img || !img.complete || img.naturalWidth === 0) {
       fetchImageRef.current?.(clampedIndex);
 
-      // Recherche bidirectionnelle instantanée de la frame prête la plus proche
-      for (let offset = 1; offset < total; offset++) {
+      // Recherche bidirectionnelle rapide (fenêtre max 25 frames) de la frame prête la plus proche
+      const maxSearch = Math.min(25, total);
+      for (let offset = 1; offset < maxSearch; offset++) {
         const prev = clampedIndex - offset;
         if (prev >= 0 && imagesRef.current[prev]?.complete && imagesRef.current[prev]?.naturalWidth !== 0) {
           img = imagesRef.current[prev];
@@ -99,113 +100,42 @@ export function ScrollSequence() {
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
 
-    if (isMobile) {
-      // --- MODE MOBILE LUXE CINÉMATIQUE HAUTE PRÉCISION ---
-      // 1. Fond d'ambiance bokeh immersif (profondeur de champ cinématique)
-      const bgAspect = cw / ch;
-      const bgSw = nh * bgAspect;
-      const bgSx = (nw - bgSw) * 0.5;
-      
-      ctx.save();
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'low';
-      if ('filter' in ctx) {
-        ctx.filter = 'blur(12px) brightness(0.6)';
-      }
-      ctx.drawImage(img, bgSx, 0, bgSw, nh, 0, 0, cw, ch);
-      ctx.restore();
+    // Rendu cinématique plein écran pur (Cover ultra-net, 60fps sans filtres CPU)
+    const canvasAspect = cw / ch;
+    const imgAspect = nw / nh;
+    let sx = 0;
+    let sy = 0;
+    let sw = nw;
+    let sh = nh;
 
-      // Voile sombre subtil pour sublimer le contraste et l'éclairage de la villa
-      ctx.fillStyle = 'rgba(15, 14, 12, 0.65)';
-      ctx.fillRect(0, 0, cw, ch);
-
-      // 2. Fenêtre d'orfèvrerie architecturale : Rendu SUPER-SHARP supersamplé
-      // Ratio 16:11.5 équilibrant ciel et jardin sans aucun rognage destructeur
-      const targetAspect = 16 / 11.5;
-      const fgSw = Math.min(nw, Math.round(nh * targetAspect));
-      const fgSh = Math.round(fgSw / targetAspect);
-      const fgSx = Math.round((nw - fgSw) * 0.5);
-      const fgSy = Math.round((nh - fgSh) * 0.35); // Cadrage architectural noble
-
-      // Marges élégantes (4% de chaque côté)
-      const marginX = Math.round(cw * 0.04);
-      const destW = cw - marginX * 2;
-      const destH = Math.round(destW / targetAspect);
-      // Positionnement vertical optimal : démarre avec aisance sous le badge chapitre
-      const destX = marginX;
-      const destY = Math.round(ch * 0.14);
-
-      // Découpe arrondie moderne (rayon 20px CSS adapté au DPR)
-      const radius = Math.round(20 * (cw / (window.innerWidth || 390)));
-
-      ctx.save();
-      // Ombre portée profonde et douce style galerie d'art
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = Math.round(28 * (cw / 390));
-      ctx.shadowOffsetY = Math.round(14 * (cw / 390));
-
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(destX, destY, destW, destH, radius);
-      } else {
-        ctx.rect(destX, destY, destW, destH);
-      }
-      ctx.clip();
-
-      // Dessin de l'image architecturale supersamplée (100% nette)
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, fgSx, fgSy, fgSw, fgSh, destX, destY, destW, destH);
-      ctx.restore();
-
-      // Fin liseré laiton champagne doré (#C9A15B)
-      ctx.save();
-      ctx.strokeStyle = 'rgba(201, 161, 91, 0.5)';
-      ctx.lineWidth = Math.max(1.5, Math.round(cw / 390));
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(destX, destY, destW, destH, radius);
-      } else {
-        ctx.rect(destX, destY, destW, destH);
-      }
-      ctx.stroke();
-      ctx.restore();
+    if (canvasAspect < imgAspect) {
+      sw = nh * canvasAspect;
+      sx = (nw - sw) * 0.5;
     } else {
-      // --- MODE DESKTOP : PLEIN ÉCRAN CINÉMATIQUE 16:9 ---
-      const canvasAspect = cw / ch;
-      const imgAspect = nw / nh;
-      let sx = 0;
-      let sy = 0;
-      let sw = nw;
-      let sh = nh;
-
-      if (canvasAspect < imgAspect) {
-        sw = nh * canvasAspect;
-        sx = (nw - sw) * 0.5;
-      } else {
-        sh = nw / canvasAspect;
-        sy = (nh - sh) * 0.5;
-      }
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+      sh = nw / canvasAspect;
+      sy = (nh - sh) * 0.5;
     }
-  }, [isMobile]);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+  }, []);
 
   // Redimensionnement du Canvas adapté à la résolution Retina de l'écran (Mobile & Desktop)
   const handleResize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // Mobile : DPR jusqu'à 2.5 pour une netteté cristalline sur écrans Retina (iPhone 3x, Samsung)
-    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    // DPR optimal : 1.8 max sur mobile (netteté Retina sans saturation GPU), 2 sur desktop
+    const dpr = isMobile
+      ? Math.min(window.devicePixelRatio || 1, 1.8)
+      : Math.min(window.devicePixelRatio || 1, 2);
     const rect = canvas.getBoundingClientRect();
     const w = rect.width > 0 ? rect.width : window.innerWidth;
     const h = rect.height > 0 ? rect.height : window.innerHeight;
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     drawFrame(Math.round(frameObjRef.current.frame));
-  }, [drawFrame]);
+  }, [drawFrame, isMobile]);
 
   useEffect(() => {
     window.addEventListener('resize', handleResize, { passive: true });
@@ -213,14 +143,13 @@ export function ScrollSequence() {
   }, [handleResize]);
 
   // Moteur de streaming ultra-rapide JIT (Just-In-Time) :
-  // Phase 1 : Anchors globales couvrant les 9 chapitres en < 300ms
-  // Phase 2 : Pool concurrent continu priorisé autour du scroll du visiteur
+  // Mobile : frames portrait HD 720x1280 (/frames-mobile)
+  // Desktop : frames 16:9 HD 1600x900 (/frames)
   useEffect(() => {
     if (totalFrames <= 0) return;
 
     let isCancelled = false;
-    // Toujours charger les frames HD 1600x900 (/frames) pour une netteté cristalline sur mobile et desktop
-    const folder = '/frames';
+    const folder = isMobile ? '/frames-mobile' : '/frames';
     imagesRef.current = new Array(totalFrames).fill(null);
     const requested = new Set<number>();
     const inFlight = new Set<number>();
@@ -259,13 +188,14 @@ export function ScrollSequence() {
 
     fetchImageRef.current = fetchImage;
 
-    // 1. Anchors clés couvrant l'ensemble des 9 espaces de la villa en < 350ms
+    // 1. Anchors clés couvrant l'ensemble des 9 espaces de la villa en < 200ms
     const anchorIndices: number[] = [];
-    for (let i = 0; i < Math.min(10, totalFrames); i++) {
+    for (let i = 0; i < Math.min(8, totalFrames); i++) {
       anchorIndices.push(i);
     }
-    // Grille régulière de keyframes : 1 frame tous les 15 index sur l'ensemble de la séquence (~90 keyframes HD)
-    for (let i = 0; i < totalFrames; i += 15) {
+    // Grille régulière de keyframes (1 frame tous les 10 index sur mobile, 15 sur desktop)
+    const step = isMobile ? 10 : 15;
+    for (let i = 0; i < totalFrames; i += step) {
       anchorIndices.push(i);
     }
     // Points précis des 9 chapitres
@@ -296,8 +226,8 @@ export function ScrollSequence() {
       drawFrame(0);
       ScrollTrigger.refresh();
 
-      // 2. Pool de téléchargement continu fluide en tâche de fond (8 connexions mobile, 12 desktop)
-      const MAX_CONCURRENT = isMobile ? 8 : 12;
+      // 2. Pool de téléchargement continu fluide en tâche de fond (4 connexions mobile, 8 desktop)
+      const MAX_CONCURRENT = isMobile ? 4 : 8;
       let activeJobs = 0;
       const queue: number[] = [];
 
@@ -324,8 +254,9 @@ export function ScrollSequence() {
         const current = Math.round(frameObjRef.current.frame);
         const priorityBatch: number[] = [];
 
-        // Fenêtre prioritaire autour du regard du visiteur (+/- 25 frames)
-        for (let offset = 0; offset <= 25; offset++) {
+        // Fenêtre prioritaire autour du regard du visiteur (+/- 15 frames sur mobile, 25 sur desktop)
+        const radius = isMobile ? 15 : 25;
+        for (let offset = 0; offset <= radius; offset++) {
           const fwd = current + offset;
           const bwd = current - offset;
           if (fwd < totalFrames && !requested.has(fwd)) priorityBatch.push(fwd);
@@ -341,7 +272,7 @@ export function ScrollSequence() {
           for (let k = 0; k < totalFrames; k += 2) {
             if (!requested.has(k) && !queue.includes(k)) {
               queue.push(k);
-              if (queue.length > 60) break;
+              if (queue.length > 50) break;
             }
           }
         }
@@ -351,13 +282,13 @@ export function ScrollSequence() {
           for (let k = 0; k < totalFrames; k++) {
             if (!requested.has(k) && !queue.includes(k)) {
               queue.push(k);
-              if (queue.length > 50) break;
+              if (queue.length > 40) break;
             }
           }
         }
 
         pumpQueue();
-      }, 100);
+      }, 120);
 
       return () => clearInterval(intervalId);
     });
@@ -379,7 +310,7 @@ export function ScrollSequence() {
           trigger: containerRef.current,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: isMobile ? 0.05 : 0.7, // Instantané & direct sur mobile (0.05s), glisse cinématique sur desktop (0.7s)
+          scrub: isMobile ? 0.05 : 0.6, // Instantané & ultra-direct sur mobile, glisse sur desktop
         },
         onUpdate: () => {
           const currentFrame = Math.round(frameObjRef.current.frame);
@@ -387,7 +318,8 @@ export function ScrollSequence() {
 
           // Lookahead immédiat : préchargement ultra-réactif des frames voisines
           if (fetchImageRef.current) {
-            for (let off = 1; off <= 10; off++) {
+            const aheadMax = isMobile ? 6 : 10;
+            for (let off = 1; off <= aheadMax; off++) {
               const ahead = currentFrame + off;
               if (ahead < totalFrames) fetchImageRef.current(ahead);
               const behind = currentFrame - off;
